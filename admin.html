@@ -1,0 +1,2494 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Subway Princess 3D - Owner Admin & External 3D Asset Studio</title>
+  <!-- Three.js + Loaders & Controls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- Firebase App & Firestore SDK (Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: #020617; color: #f8fafc; min-height: 100vh; padding-bottom: 50px; }
+    .header { background: #0f172a; border-bottom: 1px solid #1e293b; padding: 12px 16px; position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-icon { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #ec4899, #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+    .brand h1 { font-size: 15px; font-weight: 900; color: #fff; }
+    .brand p { font-size: 11px; color: #34d399; font-weight: 700; }
+    .btn { border: none; border-radius: 12px; padding: 10px 14px; font-size: 12px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; transition: 0.15s; }
+    .btn:active { transform: scale(0.96); }
+    .btn-primary { background: linear-gradient(90deg, #ec4899, #8b5cf6); color: #fff; }
+    .btn-amber { background: linear-gradient(90deg, #f59e0b, #ea580c); color: #020617; }
+    .btn-emerald { background: #10b981; color: #020617; }
+    .btn-cyan { background: #06b6d4; color: #020617; }
+    .btn-indigo { background: #6366f1; color: #fff; }
+    .btn-danger { background: #ef444433; color: #fca5a5; border: 1px solid #ef444466; padding: 6px 10px; font-size: 11px; }
+    .container { max-width: 1180px; margin: 0 auto; padding: 12px; display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 880px) { .container { grid-template-columns: 390px 1fr; align-items: start; } }
+    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 22px; padding: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.45); }
+    .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 14px; border-bottom: 1px solid #1e293b; }
+    .tab-btn { padding: 9px 12px; border-radius: 12px; border: 1px solid #334155; background: #1e293b; color: #94a3b8; font-size: 11.5px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+    .tab-btn.active { background: #f59e0b; color: #020617; border-color: #fbbf24; font-weight: 900; }
+    .tab-btn.special { background: linear-gradient(90deg, #8b5cf6, #ec4899); color: #fff; border-color: #f472b6; }
+    .tab-btn.special.active { background: linear-gradient(90deg, #ec4899, #f59e0b); color: #020617; font-weight: 900; }
+    .section-title { font-size: 15px; font-weight: 900; color: #fbbf24; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+    .section-sub { font-size: 11.5px; color: #94a3b8; margin-bottom: 12px; line-height: 1.45; }
+    .field { margin-bottom: 10px; }
+    .field label { display: block; font-size: 11px; font-weight: 700; color: #cbd5e1; margin-bottom: 4px; }
+    .input { width: 100%; background: #020617; border: 1px solid #334155; border-radius: 11px; padding: 9px 11px; color: #fff; font-size: 12px; outline: none; }
+    .input:focus { border-color: #f59e0b; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; }
+    .color-row { display: flex; align-items: center; justify-content: space-between; background: #1e293b; padding: 7px 10px; border-radius: 11px; border: 1px solid #334155; }
+    .color-row span { font-size: 11px; font-weight: 600; color: #e2e8f0; }
+    .color-row input[type="color"] { width: 30px; height: 30px; border: none; background: transparent; cursor: pointer; }
+    #preview-box { width: 100%; height: 300px; background: radial-gradient(circle at center, #1e293b, #020617); border-radius: 16px; border: 1px solid #334155; overflow: hidden; position: relative; }
+    .preview-overlay { position: absolute; bottom: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+    .preview-tag { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px); padding: 4px 8px; border-radius: 8px; font-size: 10px; font-weight: 800; color: #38bdf8; border: 1px solid #334155; pointer-events: auto; }
+    .creator-box { background: #1e293b99; border: 1px solid #334155; border-radius: 16px; padding: 13px; margin-bottom: 14px; }
+    .shop-item { background: #1e293b; border: 1px solid #334155; border-radius: 15px; padding: 11px; margin-bottom: 9px; display: flex; flex-direction: column; gap: 8px; }
+    .shop-item-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .badge { padding: 3px 8px; border-radius: 7px; font-size: 10px; font-weight: 800; background: #ec489933; color: #f472b6; border: 1px solid #ec489966; text-transform: uppercase; }
+    .badge-external { background: #8b5cf633; color: #c084fc; border-color: #8b5cf666; }
+    .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #10b981; color: #020617; padding: 11px 20px; border-radius: 99px; font-size: 12.5px; font-weight: 900; box-shadow: 0 8px 25px rgba(0,0,0,0.6); z-index: 300; display: none; text-align: center; max-width: 92vw; }
+    #pin-screen { position: fixed; inset: 0; background: #020617; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .pin-card { max-width: 360px; width: 100%; background: #0f172a; border: 1px solid #334155; border-radius: 24px; padding: 24px; text-align: center; }
+    .qr-preview { width: 125px; height: 125px; background: #fff; padding: 7px; border-radius: 14px; margin: 6px auto; display: block; object-fit: contain; }
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; margin-right: 5px; }
+    .preset-card { background: #020617; border: 1px solid #334155; border-radius: 12px; padding: 9px; cursor: pointer; transition: 0.15s; text-align: center; }
+    .preset-card:hover { border-color: #f59e0b; transform: translateY(-2px); background: #1e293b; }
+    .preset-card:active { transform: scale(0.96); }
+  </style>
+</head>
+<body>
+
+  <!-- PIN LOCK OVERLAY -->
+  <div id="pin-screen">
+    <div class="pin-card">
+      <div style="font-size: 38px; margin-bottom: 8px;">🔒</div>
+      <h2 style="font-size: 19px; font-weight: 900; margin-bottom: 6px;">অ্যাডমিন স্টুডিও লক</h2>
+      <p style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">
+        শুধুমাত্র গেমের মালিকের জন্য সংরক্ষিত। পিন দিয়ে প্রবেশ করুন।
+      </p>
+      <input id="pin-input" type="password" class="input" placeholder="পিন লিখুন (যেমন: 1234)" style="text-align: center; font-size: 18px; letter-spacing: 4px; margin-bottom: 10px;" />
+      <div id="pin-err" style="color: #f87171; font-size: 12px; font-weight: 700; margin-bottom: 8px; display: none;">ভুল পিন! আবার চেষ্টা করুন।</div>
+      <div id="pin-hint" style="background: #f59e0b1a; border: 1px solid #f59e0b4d; color: #fcd34d; font-size: 11px; padding: 8px; border-radius: 10px; margin-bottom: 12px;">
+        💡 প্রথমবার লগইনের ডিফল্ট পিন: <b>1234</b>
+      </div>
+      <button onclick="unlockAdmin()" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 14px;">আনলক করুন</button>
+    </div>
+  </div>
+
+  <!-- TOP HEADER -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand-icon">👑</div>
+      <div>
+        <h1>Subway Princess 3D — Owner Admin Studio</h1>
+        <p><span class="status-dot"></span>External 3D Asset Studio, Live Preview & UPI Store</p>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <button onclick="publishLiveToGameServer()" class="btn btn-emerald">🚀 লাইভ গেমে পাবলিশ করুন (Publish)</button>
+      <button onclick="openLiveGame()" class="btn btn-amber">▶️ গেম ওপেন করুন</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- LEFT COLUMN: 3D LIVE PREVIEW & CONTROLS -->
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span style="font-size:12px; font-weight:800; color:#f472b6;">✨ লাইভ ৩ডি ভিউপোর্ট (Interactive 3D)</span>
+        <span style="font-size:10.5px; color:#94a3b8;">মাউস/আঙুল দিয়ে ৩ডি ঘোরান</span>
+      </div>
+
+      <div id="preview-box">
+        <div class="preview-overlay">
+          <span id="preview-mode-tag" class="preview-tag">👑 Princess Mode</span>
+          <button onclick="reset3DCamera()" class="btn btn-cyan" style="font-size:9.5px; padding:3px 8px; pointer-events:auto;">🎥 ভিউ রিসেট</button>
+        </div>
+      </div>
+
+      <!-- Quick Actions beneath 3D -->
+      <div style="margin-top: 10px; background: #1e293b; border: 1px solid #f59e0b66; border-radius: 14px; padding: 10px;">
+        <div style="font-size: 11px; font-weight: 800; color: #fbbf24; margin-bottom: 7px;">
+          ⚡ ৩ডি ভিউ ও দ্রুত অ্যাকশন:
+        </div>
+        <div class="grid-2">
+          <button onclick="switchTab('import_asset', document.getElementById('tabbtn-import'))" class="btn btn-primary" style="font-size:11px; padding:8px;">📥 এক্সটার্নাল ৩ডি ফাইল ইমপোর্ট</button>
+          <button onclick="switchTab('create_char', document.getElementById('tabbtn-char'))" class="btn btn-cyan" style="font-size:11px; padding:8px;">👑 কাস্টম ক্যারেক্টার</button>
+          <button onclick="switchTab('create_dress', document.getElementById('tabbtn-dress'))" class="btn btn-amber" style="font-size:11px; padding:8px;">👗 ড্রেস ও স্কেটবোর্ড</button>
+          <button onclick="switchTab('create_pet', document.getElementById('tabbtn-pet'))" class="btn btn-indigo" style="font-size:11px; padding:8px;">🐾 পোষা প্রাণী</button>
+        </div>
+      </div>
+
+      <!-- Main Game Server URL -->
+      <div style="margin-top: 10px; background: #020617; border: 1px solid #334155; border-radius: 14px; padding: 11px;">
+        <div style="font-size: 11px; font-weight: 800; color: #34d399; margin-bottom: 4px;">
+          🌐 আপনার গেমের মূল ওয়েব অ্যাপ লিংক (Firebase Web App):
+        </div>
+        <input id="webapp-base-url" type="text" class="input" value="https://our-simple-run.web.app" style="font-size: 11.5px; font-weight: 700; color: #38bdf8; margin-bottom: 6px;" />
+        <p style="font-size: 10px; color: #94a3b8; line-height: 1.4;">
+          ✅ আপনার আসল গেম লিংক <b>https://our-simple-run.web.app/</b> সরাসরি যুক্ত আছে। যেকোনো পরিবর্তন করে <b>"🚀 লাইভ গেমে পাবলিশ করুন"</b> চাপলেই সমস্ত ডিভাইসে গেম স্বয়ংক্রিয়ভাবে আপডেট হয়ে যাবে।
+        </p>
+      </div>
+
+      <!-- Backup / Export JSON -->
+      <div style="margin-top: 8px; display:flex; gap:6px;">
+        <button onclick="exportConfigJson()" class="btn btn-cyan" style="flex:1; font-size:10.5px; padding:7px;">📥 স্টোর JSON ডাউনলোড</button>
+        <button onclick="document.getElementById('import-json-file').click()" class="btn btn-indigo" style="flex:1; font-size:10.5px; padding:7px;">📤 JSON রিস্টোর</button>
+        <input type="file" id="import-json-file" accept=".json" style="display:none;" onchange="importConfigJson(this)" />
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: EXTERNAL ASSET STUDIO & STORE CREATOR -->
+    <div class="card">
+      <div class="tabs">
+        <button id="tabbtn-import" class="tab-btn special active" onclick="switchTab('import_asset', this)">📥 ১. ৩ডি ক্যারেক্টার ইমপোর্ট (.glb / .obj)</button>
+        <button id="tabbtn-upi" class="tab-btn" onclick="switchTab('upi', this)">💰 ২. UPI পেমেন্ট ও স্টোর</button>
+        <button id="tabbtn-char" class="tab-btn" onclick="switchTab('create_char', this)">👑 ৩. নতুন ক্যারেক্টার</button>
+        <button id="tabbtn-dress" class="tab-btn" onclick="switchTab('create_dress', this)">👗 ৪. ড্রেস ও বোর্ড</button>
+        <button id="tabbtn-pet" class="tab-btn" onclick="switchTab('create_pet', this)">🐾 ৫. পোষা প্রাণী</button>
+        <button id="tabbtn-level" class="tab-btn" onclick="switchTab('level_rewards', this)">🎁 ৬. লেভেল আপ ফ্রি পুরস্কার</button>
+        <button id="tabbtn-roadside" class="tab-btn" onclick="switchTab('roadside_shop', this)">🏪 ৭. রাস্তার শপ ক্যারেক্টার</button>
+      </div>
+
+      <!-- ================= TAB 1: EXTERNAL 3D ASSET IMPORTER & TWEAKER ================= -->
+      <div id="tab-import_asset">
+        <div class="section-title">📥 এক্সটার্নাল ৩ডি মডেল ইমপোর্টার ও এডিটর</div>
+        <div class="section-sub">
+          আপনার ডিভাইস থেকে যেকোনো কাস্টম ৩ডি ফাইল (.glb, .gltf, .obj) আপলোড করুন এবং সরাসরি গেমের স্টোরে যুক্ত করুন:
+        </div>
+
+        <!-- Prominent Glowing File Upload Card -->
+        <div style="background: linear-gradient(135deg, rgba(236,72,153,0.25), rgba(139,92,246,0.25)); border: 2px solid #f472b6; border-radius: 20px; padding: 18px; text-align: center; margin-bottom: 16px; box-shadow: 0 10px 25px rgba(236,72,153,0.3);">
+          <div style="font-size: 16px; font-weight: 900; color: #f472b6; margin-bottom: 6px;">
+            📥 ১. আপনার ফোন থেকে ৩ডি ক্যারেক্টার ফাইল সিলেক্ট করুন
+          </div>
+          <p style="font-size: 12px; color: #cbd5e1; margin-bottom: 14px;">
+            (.glb, .gltf, .obj ফরম্যাটের কাস্টম ক্যারেক্টার ফাইল এখান থেকে আপলোড হবে)
+          </p>
+          <label for="ext-model-file" class="btn btn-primary" style="padding: 15px 24px; font-size: 15px; font-weight: 900; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; background: linear-gradient(90deg, #ec4899, #8b5cf6); border-radius: 14px; box-shadow: 0 6px 20px rgba(236,72,153,0.4);">
+            📁 ৩ডি ক্যারেক্টার ফাইল বাছুন (.glb / .obj)
+          </label>
+          <input type="file" id="ext-model-file" accept="*/*" style="display:none;" onchange="handleExternalModelFileUpload(this)" />
+          <div id="file-loaded-status" style="margin-top: 10px; font-size: 13px; font-weight: 800; color: #34d399;"></div>
+        </div>
+
+        <!-- 1. Input Source: Texture or URL -->
+        <div class="creator-box">
+          <div style="font-size:12px; font-weight:800; color:#38bdf8; margin-bottom:8px;">
+            ২. বিকল্প টেক্সচার বা ৩ডি মডেল URL:
+          </div>
+
+          <div class="field" style="margin-bottom:10px;">
+            <label>🖼️ টেক্সচার / স্কিন ইমেজ (.png, .jpg):</label>
+            <input type="file" id="ext-texture-file" accept="image/*" class="input" style="padding:6px;" onchange="handleExternalTextureUpload(this)" />
+          </div>
+
+          <div class="field" style="margin-bottom:10px;">
+            <label>🔗 ৩ডি মডেল URL বা Data URL:</label>
+            <div style="display:flex; gap:6px;">
+              <input type="text" id="ext-model-url" class="input" placeholder="https://.../model.glb অথবা data:model/gltf-binary;base64,..." />
+              <button onclick="loadExternalModelFromUrl()" class="btn btn-cyan" style="white-space:nowrap;">লোড করুন</button>
+            </div>
+          </div>
+
+          <!-- Built-in Popular 3D Presets -->
+          <div style="margin-top:10px;">
+            <label style="font-size:11px; font-weight:700; color:#fbbf24; margin-bottom:6px; display:block;">
+              ⚡ অথবা তৈরি ৩ডি প্রিসেট টেস্ট করুন:
+            </label>
+            <div class="grid-3">
+              <div class="preset-card" onclick="loadExternalPreset('mecha')">
+                <div style="font-size:22px;">🤖</div>
+                <div style="font-size:11px; font-weight:800; color:#fff;">সাইবার মেকা রোবট</div>
+                <div style="font-size:9.5px; color:#38bdf8;">Character Model</div>
+              </div>
+              <div class="preset-card" onclick="loadExternalPreset('astro')">
+                <div style="font-size:22px;">🚀</div>
+                <div style="font-size:11px; font-weight:800; color:#fff;">গ্যালাক্সি অ্যাস্ট্রো সার্ফার</div>
+                <div style="font-size:9.5px; color:#38bdf8;">Character Model</div>
+              </div>
+              <div class="preset-card" onclick="loadExternalPreset('unicorn')">
+                <div style="font-size:22px;">🦄</div>
+                <div style="font-size:11px; font-weight:800; color:#fff;">ম্যাজিক ইউনিকর্ন পেট</div>
+                <div style="font-size:9.5px; color:#f472b6;">Pet Companion</div>
+              </div>
+              <div class="preset-card" onclick="loadExternalPreset('ninja_cat')">
+                <div style="font-size:22px;">🐱</div>
+                <div style="font-size:11px; font-weight:800; color:#fff;">নিনজা ক্যাট সঙ্গী</div>
+                <div style="font-size:9.5px; color:#f472b6;">Pet Companion</div>
+              </div>
+              <div class="preset-card" onclick="loadExternalPreset('plasma_board')">
+                <div style="font-size:22px;">🛹</div>
+                <div style="font-size:11px; font-weight:800; color:#fff;">প্লাজমা হোভারবোর্ড</div>
+                <div style="font-size:9.5px; color:#34d399;">VIP Skateboard</div>
+              </div>
+              <div class="preset-card" onclick="loadExternalPreset('aurora_dress')">
+                <div style="font-size:22px;">👗</div>
+                <div style="font-size:11px; font-weight:800; color:#fff;">অরোরা রয়্যাল ড্রেস</div>
+                <div style="font-size:9.5px; color:#ec4899;">VIP Dress Outfit</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Live 3D Tweaker Controls -->
+        <div class="creator-box">
+          <div style="font-size:12px; font-weight:800; color:#fbbf24; margin-bottom:8px;">
+            ২. লাইভ ৩ডি রঙ ও সাইজ কাস্টমাইজেশন (Tweaker):
+          </div>
+
+          <div class="grid-2" style="margin-bottom:10px;">
+            <div class="field">
+              <label>অ্যাসেট ক্যাটাগরি:</label>
+              <select id="ext-category" class="input" onchange="handleExternalCategoryChange()">
+                <option value="character">👑 Character (ক্যারেক্টার)</option>
+                <option value="pet">🐾 Pet Companion (পোষা প্রাণী)</option>
+                <option value="dress">👗 Dress / Outfit (পোশাক)</option>
+                <option value="skateboard">🛹 Skateboard (স্কেটবোর্ড)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>বিশেষ পার্ক / বোনাস:</label>
+              <select id="ext-perk" class="input">
+                <option value="none">✨ সাধারণ (Normal)</option>
+                <option value="magnet_boost">🧲 +২৫% ম্যাগনেট রেঞ্জ</option>
+                <option value="score_boost">⭐ +২০% অতিরিক্ত স্কোর</option>
+                <option value="coin_doubler">🪙 ডাবল কয়েন (2X) সুবিধা</option>
+                <option value="shield_saver">🛹 +২ এক্সট্রা শিল্ড বোর্ড</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Color Tweaks -->
+          <div class="grid-3" style="margin-bottom:10px;">
+            <div class="color-row">
+              <span>🎨 বডি রঙ:</span>
+              <input type="color" id="ext-col-main" value="#ec4899" oninput="updateExternal3DVisuals()" />
+            </div>
+            <div class="color-row">
+              <span>✨ এক্সেন্ট রঙ:</span>
+              <input type="color" id="ext-col-sec" value="#38bdf8" oninput="updateExternal3DVisuals()" />
+            </div>
+            <div class="color-row">
+              <span>🌟 নিয়ন গ্লো:</span>
+              <input type="color" id="ext-col-glow" value="#fbbf24" oninput="updateExternal3DVisuals()" />
+            </div>
+          </div>
+
+          <!-- Sliders for Transform Tweaks -->
+          <div class="grid-3" style="margin-bottom:10px;">
+            <div class="field">
+              <label>📐 ৩ডি সাইজ/স্কেল: <b id="lbl-scale">1.0x</b></label>
+              <input type="range" id="ext-scale" min="0.2" max="3.0" step="0.05" value="1.0" class="input" style="padding:0;" oninput="document.getElementById('lbl-scale').textContent = this.value + 'x'; updateExternal3DVisuals();" />
+            </div>
+            <div class="field">
+              <label>⬆️ উচ্চতা (Y-Offset): <b id="lbl-yoff">0.0</b></label>
+              <input type="range" id="ext-yoff" min="-1.5" max="2.0" step="0.05" value="0.0" class="input" style="padding:0;" oninput="document.getElementById('lbl-yoff').textContent = this.value; updateExternal3DVisuals();" />
+            </div>
+            <div class="field">
+              <label>🔄 রোটেশন কোণ: <b id="lbl-rot">0°</b></label>
+              <input type="range" id="ext-rot" min="0" max="360" step="5" value="0" class="input" style="padding:0;" oninput="document.getElementById('lbl-rot').textContent = this.value + '°'; updateExternal3DVisuals();" />
+            </div>
+          </div>
+
+          <!-- Extra Elements Attachments -->
+          <div style="font-size:11px; font-weight:700; color:#94a3b8; margin-bottom:6px;">
+            ➕ অতিরিক্ত ৩ডি এলিমেন্ট যুক্ত করুন:
+          </div>
+          <div class="grid-4" style="font-size:11px; margin-bottom:12px;">
+            <label style="cursor:pointer;"><input type="checkbox" id="ext-chk-crown" checked onchange="updateExternal3DVisuals()" /> 👑 মুকুট</label>
+            <label style="cursor:pointer;"><input type="checkbox" id="ext-chk-cape" checked onchange="updateExternal3DVisuals()" /> 🧣 কেপ/উইংস</label>
+            <label style="cursor:pointer;"><input type="checkbox" id="ext-chk-board" checked onchange="updateExternal3DVisuals()" /> 🛹 স্কেটবোর্ড</label>
+            <label style="cursor:pointer;"><input type="checkbox" id="ext-chk-ring" onchange="updateExternal3DVisuals()" /> ✨ অরা হ্যালো</label>
+          </div>
+        </div>
+
+        <!-- 3. Name, Price, Code and Add Button -->
+        <div class="creator-box">
+          <div style="font-size:12px; font-weight:800; color:#34d399; margin-bottom:8px;">
+            ৩. স্টোর নাম, দাম ও আনলক কোড:
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label>অ্যাসেটের নাম (বাংলায়):</label>
+              <input id="ext-name-bn" type="text" class="input" value="সাইবার মেকা টাইটান" />
+            </div>
+            <div class="field">
+              <label>নাম (English):</label>
+              <input id="ext-name-en" type="text" class="input" value="Cyber Mecha Titan" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label>সংক্ষিপ্ত বিবরণ (Description):</label>
+            <input id="ext-desc" type="text" class="input" value="এক্সটার্নাল হাই-টেক ৩ডি সাইবার ক্যারেক্টার ও নিয়ন সুট" />
+          </div>
+
+          <div class="grid-3" style="margin-bottom:12px;">
+            <div class="field">
+              <label style="color:#fbbf24;">স্টোর দাম (₹ ভারতীয় রুপি):</label>
+              <input id="ext-price-inr" type="number" class="input" value="49" />
+            </div>
+            <div class="field">
+              <label style="color:#f472b6;">সিক্রেট আনলক কোড:</label>
+              <input id="ext-unlock-code" type="text" class="input" value="MECHA49" />
+            </div>
+            <div class="field">
+              <label style="color:#38bdf8;">কয়েন দাম (Coins):</label>
+              <input id="ext-price-coins" type="number" class="input" value="4000" />
+            </div>
+          </div>
+
+          <button onclick="addExternalAssetToStore()" class="btn btn-primary" style="width:100%; padding:14px; font-size:14px; font-weight:900;">
+            ➕ এই এক্সটার্নাল ৩ডি অ্যাসেটটি গেমের স্টোরে যোগ করুন
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= TAB 2: UPI & SHOP ITEMS ================= -->
+      <div id="tab-upi" style="display:none;">
+        <div class="section-title">💰 আপনার UPI ID, QR কোড ও স্টোর কন্ট্রোল</div>
+        <div class="section-sub">
+          আপনার UPI ID ও QR কোড সেট করুন। প্লেয়াররা স্টোর থেকে নতুন ক্যারেক্টার, ড্রেস, স্কেটবোর্ড বা পেট আনলক করতে এই UPI-তে ভারতীয় রুপি (₹) পাঠাবে।
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label>আপনার UPI ID (PhonePe / GPay / Paytm):</label>
+            <input id="upi-id" type="text" class="input" placeholder="yourname@ybl" oninput="updateQrPreview()" />
+          </div>
+          <div class="field">
+            <label>আপনার নাম / স্টোরের নাম:</label>
+            <input id="merchant-name" type="text" class="input" placeholder="Subway Princess Store" oninput="updateQrPreview()" />
+          </div>
+          <div class="field">
+            <label>WhatsApp নম্বর (ঐচ্ছিক - কোড দেওয়ার জন্য):</label>
+            <input id="whatsapp-num" type="text" class="input" placeholder="919876543210" />
+          </div>
+          <div class="field">
+            <label>অ্যাডমিন গোপন পিন (Admin PIN):</label>
+            <input id="admin-pin" type="text" class="input" placeholder="1234" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label>পেমেন্ট ভেরিফিকেশন মোড:</label>
+            <select id="verify-mode" class="input">
+              <option value="utr_or_code">⚡ ১২ সংখ্যার UPI UTR নম্বর বা আনলক কোড</option>
+              <option value="code_only">🔐 শুধুমাত্র সিক্রেট আনলক কোড</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>নিজের UPI QR ছবি আপলোড (ঐচ্ছিক):</label>
+            <input type="file" accept="image/*" class="input" style="padding:6px;" onchange="handleCustomQrUpload(this)" />
+          </div>
+        </div>
+
+        <div style="background:#020617; border:1px solid #334155; border-radius:15px; padding:10px; text-align:center; margin-bottom:14px;">
+          <div style="font-size:11.5px; font-weight:700; color:#fbbf24;">📱 আপনার UPI QR কোড প্রিভিউ:</div>
+          <img id="live-qr-img" class="qr-preview" alt="UPI QR" src="" />
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div class="section-title" style="font-size:14px; margin:0;">🛍️ স্টোরে থাকা সব আইটেম (<span id="item-count">0</span>টি):</div>
+          <span style="font-size:11px; color:#34d399;">নতুন আইটেম যোগ করলে এখানে যুক্ত হবে</span>
+        </div>
+        <div id="shop-items-container"></div>
+      </div>
+
+      <!-- ================= TAB 3: CREATE PROCEDURAL CHARACTER ================= -->
+      <div id="tab-create_char" style="display:none;">
+        <div class="section-title">👑 নতুন ক্যারেক্টার তৈরি ও যোগ করুন</div>
+        <div class="section-sub">
+          রঙ ও বিবরণ দিয়ে নতুন প্রিন্সেস ক্যারেক্টার ডিজাইন করে স্টোরে যোগ করুন:
+        </div>
+
+        <div class="creator-box">
+          <div class="grid-2">
+            <div class="field">
+              <label>নতুন ক্যারেক্টারের নাম (বাংলায়):</label>
+              <input id="new-char-name-bn" type="text" class="input" value="বরফ রানী এলসা" />
+            </div>
+            <div class="field">
+              <label>ক্যারেক্টারের নাম (English):</label>
+              <input id="new-char-name-en" type="text" class="input" value="Ice Queen Elsa" oninput="update3DFromInputs()" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label>সংক্ষিপ্ত বিবরণ (Description):</label>
+            <input id="new-char-desc" type="text" class="input" value="নীল বরফের জাদুকরী প্রিন্সেস ও রাজকীয় মুকুট" />
+          </div>
+
+          <div class="grid-3" style="margin-bottom:10px;">
+            <div class="field">
+              <label style="color:#fbbf24;">স্টোর দাম (₹ রুপি):</label>
+              <input id="new-char-price" type="number" class="input" value="39" />
+            </div>
+            <div class="field">
+              <label style="color:#f472b6;">সিক্রেট আনলক কোড:</label>
+              <input id="new-char-code" type="text" class="input" value="ELSA39" />
+            </div>
+            <div class="field">
+              <label>কয়েন দাম (ঐচ্ছিক):</label>
+              <input id="new-char-coins" type="number" class="input" value="3500" />
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-bottom:10px;">
+            <div class="color-row">
+              <span>👗 জামার রঙ (Outfit):</span>
+              <input id="col-outfit" type="color" value="#38bdf8" oninput="update3DFromInputs()" />
+            </div>
+            <div class="color-row">
+              <span>🎗️ বেল্ট/প্যান্ট রঙ:</span>
+              <input id="col-secondary" type="color" value="#1d4ed8" oninput="update3DFromInputs()" />
+            </div>
+            <div class="color-row">
+              <span>💇‍♀️ চুলের রঙ (Hair):</span>
+              <input id="col-hair" type="color" value="#e0f2fe" oninput="update3DFromInputs()" />
+            </div>
+            <div class="color-row">
+              <span>🧑 গায়ের রঙ (Skin):</span>
+              <input id="col-skin" type="color" value="#fed7aa" oninput="update3DFromInputs()" />
+            </div>
+            <div class="color-row">
+              <span>🧣 কেপের রঙ (Cape):</span>
+              <input id="col-cape" type="color" value="#0284c7" oninput="update3DFromInputs()" />
+            </div>
+            <div class="color-row">
+              <span>👑 মুকুটের রঙ (Crown):</span>
+              <input id="col-crown" type="color" value="#fde047" oninput="update3DFromInputs()" />
+            </div>
+          </div>
+
+          <div style="display:flex; gap:18px; margin-bottom:12px; font-size:12px;">
+            <label style="cursor:pointer;"><input type="checkbox" id="chk-crown" checked onchange="update3DFromInputs()" /> 👑 মাথায় মুকুট থাকবে</label>
+            <label style="cursor:pointer;"><input type="checkbox" id="chk-cape" checked onchange="update3DFromInputs()" /> 🧣 পেছনে কেপ থাকবে</label>
+          </div>
+
+          <button onclick="addNewCharacterToStore()" class="btn btn-primary" style="width:100%; padding:13px; font-size:13.5px;">
+            ➕ এই নতুন ক্যারেক্টারটি গেমের স্টোরে যোগ করুন
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= TAB 4: CREATE DRESS & SKATEBOARD ================= -->
+      <div id="tab-create_dress" style="display:none;">
+        <div class="creator-box">
+          <div class="section-title">👗 নতুন ড্রেস / পোশাক (Dress) তৈরি ও যোগ করুন</div>
+          <div class="section-sub">নতুন পোশাক ডিজাইন করে স্টোরে যোগ করুন:</div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label>নতুন ড্রেসের নাম (বাংলায়):</label>
+              <input id="new-dress-name-bn" type="text" class="input" value="ডায়মন্ড রয়্যাল গাউন" />
+            </div>
+            <div class="field">
+              <label>ড্রেসের নাম (English):</label>
+              <input id="new-dress-name-en" type="text" class="input" value="Diamond Royal Gown" />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label style="color:#fbbf24;">ড্রেসের দাম (₹ রুপি):</label>
+              <input id="new-dress-price" type="number" class="input" value="25" />
+            </div>
+            <div class="field">
+              <label style="color:#f472b6;">সিক্রেট আনলক কোড:</label>
+              <input id="new-dress-code" type="text" class="input" value="DRESS25" />
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-bottom:10px;">
+            <div class="color-row">
+              <span>👗 ড্রেসের প্রধান রঙ:</span>
+              <input id="dress-col-main" type="color" value="#ec4899" oninput="syncDressTo3D()" />
+            </div>
+            <div class="color-row">
+              <span>🎗️ ড্রেসের বর্ডার রঙ:</span>
+              <input id="dress-col-sec" type="color" value="#a855f7" oninput="syncDressTo3D()" />
+            </div>
+            <div class="color-row">
+              <span>🧣 কেপের রঙ:</span>
+              <input id="dress-col-cape" type="color" value="#f43f5e" oninput="syncDressTo3D()" />
+            </div>
+            <div class="color-row">
+              <span>👑 মুকুটের রঙ:</span>
+              <input id="dress-col-crown" type="color" value="#fbbf24" oninput="syncDressTo3D()" />
+            </div>
+          </div>
+
+          <button onclick="addNewDressToStore()" class="btn btn-primary" style="width:100%; padding:12px;">
+            ➕ এই নতুন ড্রেসটি গেমের স্টোরে যোগ করুন
+          </button>
+        </div>
+
+        <div class="creator-box">
+          <div class="section-title" style="color:#38bdf8;">🛹 নতুন স্কেটবোর্ড (Skateboard) তৈরি ও যোগ করুন</div>
+          <div class="section-sub">নতুন স্কেটবোর্ড ডিজাইন করে স্টোরে যোগ করুন:</div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label>স্কেটবোর্ডের নাম (বাংলায়):</label>
+              <input id="new-board-name-bn" type="text" class="input" value="সুপার সনিক গোল্ড বোর্ড" />
+            </div>
+            <div class="field">
+              <label>স্কেটবোর্ডের নাম (English):</label>
+              <input id="new-board-name-en" type="text" class="input" value="Super Sonic Gold Board" />
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="field">
+              <label style="color:#fbbf24;">দাম (₹ রুপি):</label>
+              <input id="new-board-price" type="number" class="input" value="29" />
+            </div>
+            <div class="field">
+              <label style="color:#f472b6;">আনলক কোড:</label>
+              <input id="new-board-code" type="text" class="input" value="SONIC29" />
+            </div>
+            <div class="field">
+              <label style="color:#34d399;">+বোনাস বোর্ড সংখ্যা:</label>
+              <input id="bonus-boards" type="number" min="0" max="15" class="input" value="5" />
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-bottom:10px;">
+            <div class="color-row">
+              <span>🛹 বোর্ডের রঙ (Deck):</span>
+              <input id="col-board" type="color" value="#eab308" oninput="update3DFromInputs()" />
+            </div>
+            <div class="color-row">
+              <span>⚡ সাইড বর্ডার (Rail):</span>
+              <input id="col-trim" type="color" value="#06b6d4" oninput="update3DFromInputs()" />
+            </div>
+          </div>
+
+          <button onclick="addNewBoardToStore()" class="btn btn-cyan" style="width:100%; padding:12px;">
+            ➕ এই নতুন স্কেটবোর্ডটি গেমের স্টোরে যোগ করুন
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= TAB 5: CREATE PET & THEMES ================= -->
+      <div id="tab-create_pet" style="display:none;">
+        <div class="creator-box">
+          <div class="section-title">🐾 নতুন পোষা প্রাণী (Pet Companion) তৈরি ও যোগ করুন</div>
+          <div class="section-sub">নতুন পোষা প্রাণী তৈরি করে স্টোরে যোগ করুন:</div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label>পোষা প্রাণীর নাম (বাংলায়):</label>
+              <input id="new-pet-name-bn" type="text" class="input" value="রকেট পান্ডা" />
+            </div>
+            <div class="field">
+              <label>পোষা প্রাণীর নাম (English):</label>
+              <input id="new-pet-name-en" type="text" class="input" value="Rocket Panda" />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label>পোষা প্রাণীর ধরণ (Species):</label>
+              <select id="pet-type" class="input" onchange="update3DFromInputs()">
+                <option value="panda">🐼 পান্ডা (Panda)</option>
+                <option value="corgi">🐶 কুকুরছানা (Corgi Dog)</option>
+                <option value="kitty">🐱 বিড়ালছানা (Lucky Kitty)</option>
+                <option value="fox">🦊 ফক্স (Kitsune Fox)</option>
+                <option value="dragon">🐉 উড়ন্ত ড্রাগন (Baby Dragon)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>বিশেষ ক্ষমতা (Special Perk):</label>
+              <select id="new-pet-perk" class="input">
+                <option value="magnet_boost">🧲 +২৫% কয়েন ম্যাগনেট রেঞ্জ</option>
+                <option value="score_boost">⭐ +২০% অতিরিক্ত স্কোর বোনাস</option>
+                <option value="coin_doubler">🪙 ডাবল কয়েন (2X Coins) পাওয়ার সুযোগ</option>
+                <option value="shield_saver">🛹 অতিরিক্ত ফ্রি শিল্ড সুবিধা</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label style="color:#fbbf24;">পেটের দাম (₹ রুপি):</label>
+              <input id="new-pet-price" type="number" class="input" value="29" />
+            </div>
+            <div class="field">
+              <label style="color:#f472b6;">সিক্রেট আনলক কোড:</label>
+              <input id="new-pet-code" type="text" class="input" value="PANDA29" />
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-bottom:10px;">
+            <div class="color-row">
+              <span>🐾 শরীরের প্রধান রঙ:</span>
+              <input id="pet-col-main" type="color" value="#f43f5e" oninput="update3DFromInputs()" />
+            </div>
+            <div class="color-row">
+              <span>🐾 পেট ও কানের রঙ:</span>
+              <input id="pet-col-sec" type="color" value="#ffffff" oninput="update3DFromInputs()" />
+            </div>
+          </div>
+
+          <button onclick="addNewPetToStore()" class="btn btn-amber" style="width:100%; padding:12px;">
+            ➕ এই নতুন পোষা প্রাণীটি গেমের স্টোরে যোগ করুন
+          </button>
+        </div>
+
+        <!-- Environment Theme & Complete Sets for Gameplay -->
+        <div class="creator-box">
+          <div class="section-title" style="color:#38bdf8;">🌆 গেমের ব্যাকগ্রাউন্ড থিম পরিবর্তন করুন</div>
+          <div class="field" style="margin-bottom: 12px;">
+            <label>রেলওয়ে ব্যাকগ্রাউন্ড থিম সিলেক্ট করুন:</label>
+            <select id="env-theme" class="input" onchange="collectThemeInput()">
+              <option value="neon_subway">🌃 Neon City Subway (নিয়ন সিটি)</option>
+              <option value="royal_kingdom">🏰 Royal Palace Railway (রাজপ্রাসাদ)</option>
+              <option value="tokyo_sakura">🌸 Tokyo Sakura Express (টোকিও চেরি ব্লসম)</option>
+              <option value="desert_express">🏜️ Golden Oasis Metro (মরুভূমি এক্সপ্রেস)</option>
+            </select>
+          </div>
+
+          <!-- Complete Set for Gameplay Section -->
+          <div style="border-top: 1px solid #334155; padding-top: 10px; margin-top: 10px;">
+            <div class="section-title" style="color:#fbbf24; font-size:13px;">🖼️ Complete Set for Gameplay (ব্যাকগ্রাউন্ড সেট)</div>
+            <p class="section-sub" style="font-size:10.5px; margin-bottom:8px;">
+              নিচের সেটগুলোর মধ্যে যেকোনো একটি সিলেক্ট করুন বা আপনার নিজের মতো করে কাস্টম ব্যাকগ্রাউন্ড সেট তৈরি ও পরিচালনা করুন:
+            </p>
+
+            <div class="field" style="margin-bottom:10px;">
+              <label>সক্রিয় ব্যাকগ্রাউন্ড সেট (Active Set):</label>
+              <select id="selected-scenery-set" class="input" onchange="selectScenerySet(this.value)">
+                <!-- Will be dynamically populated -->
+              </select>
+            </div>
+
+            <!-- Scenery Set Editor Panel -->
+            <div style="background: rgba(15,23,42,0.6); border: 1px solid #334155; border-radius: 12px; padding: 10px; margin-top: 8px;">
+              <div style="font-size:11px; font-weight:800; color:#38bdf8; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+                <span>🛠️ ব্যাকগ্রাউন্ড সেট তৈরি/সম্পাদনা (Set Editor)</span>
+                <button type="button" onclick="resetSceneryEditor()" class="btn btn-cyan" style="font-size:9px; padding:2px 6px;">🆕 নতুন তৈরি</button>
+              </div>
+
+              <input type="hidden" id="scenery-id" value="" />
+              
+              <div class="grid-2" style="margin-bottom:8px;">
+                <div class="field">
+                  <label>সেটের নাম (English):</label>
+                  <input type="text" id="scenery-name" class="input" placeholder="e.g. Neon Horizon" />
+                </div>
+                <div class="field">
+                  <label>সেটের নাম (বাংলা):</label>
+                  <input type="text" id="scenery-name-bn" class="input" placeholder="যেমন: নিয়ন দিগন্ত" />
+                </div>
+              </div>
+
+              <!-- Checkboxes for background elements -->
+              <div style="display:flex; justify-content:space-between; flex-wrap:wrap; background:#020617; padding:6px; border-radius:8px; margin-bottom:8px; gap:8px;">
+                <label style="display:flex; align-items:center; gap:4px; font-size:10.5px; cursor:pointer;">
+                  <input type="checkbox" id="scenery-has-buildings" checked /> 🏙️ দালান (Buildings)
+                </label>
+                <label style="display:flex; align-items:center; gap:4px; font-size:10.5px; cursor:pointer;">
+                  <input type="checkbox" id="scenery-has-mountains" checked /> 🏔️ পাহাড় (Mountains)
+                </label>
+                <label style="display:flex; align-items:center; gap:4px; font-size:10.5px; cursor:pointer;">
+                  <input type="checkbox" id="scenery-has-trees" checked /> 🌳 গাছপালা (Trees)
+                </label>
+              </div>
+
+              <div class="grid-3" style="margin-bottom:8px;">
+                <div class="field">
+                  <label>দালানের ধরন:</label>
+                  <select id="scenery-building-style" class="input">
+                    <option value="modern_neon">🏙️ Neon Modern</option>
+                    <option value="royal_castle">🏰 Royal Castle</option>
+                    <option value="cherry_pagoda">⛩️ Cherry Pagoda</option>
+                    <option value="sandstone_pyramid">📐 Pyramid</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>পাহাড়ের ধরন:</label>
+                  <select id="scenery-mountain-style" class="input">
+                    <option value="tall_peaks">🏔️ Tall Peaks</option>
+                    <option value="soft_hills">⛰️ Soft Hills</option>
+                    <option value="volcanoes">🌋 Volcanoes</option>
+                    <option value="desert_dunes">🏜️ Sand Dunes</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>গাছের ধরন:</label>
+                  <select id="scenery-tree-style" class="input">
+                    <option value="cherry_blossom">🌸 Sakura</option>
+                    <option value="forest_pine">🌲 Pine</option>
+                    <option value="oasis_palm">🌴 Palm</option>
+                    <option value="neon_glow">💡 Neon Glow</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid-2" style="margin-bottom:8px;">
+                <div class="field">
+                  <label>ঘনত্ব (Density):</label>
+                  <select id="scenery-density" class="input">
+                    <option value="low">Low (অল্প)</option>
+                    <option value="medium" selected>Medium (মাঝারি)</option>
+                    <option value="high">High (ঘন)</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>ব্যাকগ্রাউন্ডের বিশেষ রঙ:</label>
+                  <input type="color" id="scenery-color" class="input" style="height:34px; padding:2px;" value="#ffffff" />
+                </div>
+              </div>
+
+              <div style="display:flex; gap:6px; margin-top:10px;">
+                <button type="button" onclick="saveScenerySet()" class="btn btn-emerald" style="flex:2; font-size:11px; padding:7px;">💾 সেট সেভ করুন</button>
+                <button type="button" id="delete-scenery-btn" onclick="deleteScenerySet()" class="btn btn-danger" style="flex:1; font-size:11px; padding:7px;">🗑️ ডিলিট</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TAB 6: LEVEL UP FREE REWARDS ================= -->
+      <div id="tab-level_rewards" style="display:none;">
+        <div class="section-title">🎁 লেভেল আপ ফ্রি পুরস্কার সেটিংস (Level Up Free Rewards)</div>
+        <div class="section-sub">
+          আপনি এখান থেকে নির্ধারণ করতে পারবেন কত লেভেল আপ করলে প্লেয়ার কোন ক্যারেক্টার, ড্রেস, স্কেটবোর্ড, পেট বা কয়েন <b>১০০% ফ্রিতে</b> পাবে। কিছু সেট না করলে প্লেয়াররা শুধু লেভেল আপ করবে, কোনো ফ্রি আইটেম পাবে না।
+        </div>
+
+        <div class="creator-box">
+          <div style="font-size:12px; font-weight:800; color:#34d399; margin-bottom:8px;">
+            ➕ নতুন লেভেল আপ ফ্রি পুরস্কার যুক্ত করুন:
+          </div>
+
+          <div class="grid-2" style="margin-bottom:10px;">
+            <div class="field">
+              <label style="color:#fbbf24;">🎯 কত লেভেলে পৌঁছালে পাবে? (Target Level):</label>
+              <input id="lvl-reward-target" type="number" min="2" max="500" class="input" value="5" />
+            </div>
+            <div class="field">
+              <label style="color:#38bdf8;">🎁 পুরস্কারের ধরন (Reward Type):</label>
+              <select id="lvl-reward-type" class="input" onchange="handleLevelRewardTypeChange()">
+                <option value="shop_item">👑 স্টোরের ক্যারেক্টার / ড্রেস / বোর্ড / পেট (ফ্রি)</option>
+                <option value="coins">🪙 ফ্রি কয়েন বোনাস (Free Coins)</option>
+                <option value="gems">💎 ফ্রি জেমস বোনাস (Free Gems)</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="lvl-reward-shopitem-box" class="field" style="margin-bottom:10px;">
+            <label>🛍️ কোন ক্যারেক্টার বা আইটেমটি ফ্রিতে দিতে চান সিলেক্ট করুন:</label>
+            <select id="lvl-reward-shopitem-id" class="input"></select>
+          </div>
+
+          <div id="lvl-reward-amount-box" class="field" style="margin-bottom:10px; display:none;">
+            <label>🔢 কয়েন বা জেমসের পরিমাণ (Amount):</label>
+            <input id="lvl-reward-amount" type="number" min="50" step="50" class="input" value="1000" />
+          </div>
+
+          <button onclick="addLevelUpReward()" class="btn btn-primary" style="width:100%; padding:13px; font-size:13.5px; font-weight:900;">
+            ➕ এই লেভেলের জন্য ফ্রি পুরস্কার সেট করুন ও লাইভ করুন
+          </button>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div class="section-title" style="font-size:14px; margin:0;">🏆 সেট করা লেভেল আপ পুরস্কারের তালিকা (<span id="lvl-reward-count">0</span>টি):</div>
+        </div>
+        <div id="level-rewards-container"></div>
+      </div>
+
+      <!-- ================= TAB 7: ROADSIDE SHOP 3D CHARACTERS ================= -->
+      <div id="tab-roadside_shop" style="display:none;">
+        <div class="section-title">🏪 রাস্তার পাশের শপের ৩ডি ক্যারেক্টার কাস্টমাইজেশন</div>
+        <div class="section-sub">
+          গেমে দৌড়ানোর সময় রাস্তার পাশে থাকা শপের ৩টি থ্রিডি ক্যারেক্টারের নাম, পোশাক, চুলের রঙ এবং অ্যানিমেশন পোজ এখান থেকে কাস্টমাইজ ও সেট করুন:
+        </div>
+        <div id="roadside-keepers-container"></div>
+      </div>
+
+      <!-- Bottom Publish Bar -->
+      <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid #1e293b; display: flex; gap: 10px; flex-wrap: wrap;">
+        <button onclick="publishLiveToGameServer()" class="btn btn-emerald" style="flex:1; padding: 13px; font-size:13px;">
+          🚀 সব পরিবর্তন সরাসরি লাইভ গেমে পাবলিশ করুন
+        </button>
+        <button onclick="openLiveGame()" class="btn btn-primary" style="flex:1; padding: 13px; font-size:13px;">
+          ▶️ গেম ওপেন করে দেখুন
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">সংরক্ষিত হয়েছে!</div>
+
+  <script>
+    const STORAGE_KEY = 'subway_princess_runner_config_v2';
+    const DEFAULT_GAME_URL = 'https://our-simple-run.web.app';
+    const CLOUD_SYNC_API = 'https://ais-pre-nwc7joq32dfcdjlvvxahlb-478239086659.asia-southeast1.run.app/api/config';
+
+    // Firebase Firestore Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAbTF56zA6-A9bkXB1HntGv9ASTS3kUmuI",
+      authDomain: "our-simple-run.firebaseapp.com",
+      projectId: "our-simple-run",
+      storageBucket: "our-simple-run.firebasestorage.app",
+      messagingSenderId: "103179978738",
+      appId: "1:103179978738:web:608d1eb11fa6ca3d738d6b",
+      measurementId: "G-X265K8JSPN"
+    };
+
+    let firestoreDb = null;
+    try {
+      if (typeof firebase !== 'undefined') {
+        if (!firebase.apps || firebase.apps.length === 0) {
+          firebase.initializeApp(firebaseConfig);
+        }
+        firestoreDb = firebase.firestore();
+      }
+    } catch (e) {
+      console.warn('Firebase init warning:', e);
+    }
+
+    const INITIAL_SHOP_ITEMS = [
+      {
+        id: 'char_aurora', category: 'character', name: 'Princess Aurora', nameBn: 'প্রিন্সেস অরোরা (ফ্রি)',
+        description: 'Royal starter princess', descriptionBn: 'সোনালী চুলের রাজকীয় প্রিন্সেস (ফ্রি)',
+        priceInr: 0, priceCoins: 0, unlockCode: 'FREE', isDefaultUnlocked: true,
+        previewColors: ['#ec4899', '#eab308'],
+        characterData: { name: 'Princess Aurora', modelType: 'royal', skinColor: '#fed7aa', hairColor: '#eab308', outfitColor: '#ec4899', outfitSecondaryColor: '#a855f7', crownColor: '#fbbf24', capeColor: '#f43f5e', hasCrown: true, hasCape: true }
+      },
+      {
+        id: 'char_cyber_nova', category: 'character', name: 'Cyber Nova', nameBn: 'সাইবার নোভা',
+        description: 'Futuristic neon runner', descriptionBn: 'নিয়ন সাইবার স্যুট ও সায়ান চুলের সুপার রানার',
+        priceInr: 29, priceCoins: 2500, unlockCode: 'NOVA29', isDefaultUnlocked: false,
+        previewColors: ['#06b6d4', '#0f172a'],
+        characterData: { name: 'Cyber Nova', modelType: 'cyber', skinColor: '#fce7f3', hairColor: '#06b6d4', outfitColor: '#0f172a', outfitSecondaryColor: '#22d3ee', crownColor: '#06b6d4', capeColor: '#38bdf8', hasCrown: true, hasCape: false }
+      },
+      {
+        id: 'char_sakura_aoi', category: 'character', name: 'Princess Aoi', nameBn: 'সাকুরা প্রিন্সেস আওই',
+        description: 'Tokyo Blossom princess', descriptionBn: 'টোকিও চেরি ব্লসম স্টাইলের রাজকন্যা',
+        priceInr: 39, priceCoins: 3500, unlockCode: 'AOI39', isDefaultUnlocked: false,
+        previewColors: ['#f472b6', '#312e81'],
+        characterData: { name: 'Princess Aoi', modelType: 'sakura', skinColor: '#fff1f2', hairColor: '#312e81', outfitColor: '#f472b6', outfitSecondaryColor: '#fda4af', crownColor: '#fb7185', capeColor: '#f43f5e', hasCrown: true, hasCape: true }
+      },
+      {
+        id: 'char_rebel_maya', category: 'character', name: 'Street Rebel Maya', nameBn: 'স্ট্রিট রেবেল মায়া',
+        description: 'High-speed street surfer', descriptionBn: 'আগুনের মতো লাল চুলের স্ট্রিট সার্ফার প্রিন্সেস',
+        priceInr: 49, priceCoins: 4500, unlockCode: 'MAYA49', isDefaultUnlocked: false,
+        previewColors: ['#ea580c', '#dc2626'],
+        characterData: { name: 'Street Rebel Maya', modelType: 'street', skinColor: '#d97706', hairColor: '#dc2626', outfitColor: '#ea580c', outfitSecondaryColor: '#171717', crownColor: '#e11d48', capeColor: '#fb923c', hasCrown: false, hasCape: false }
+      },
+      {
+        id: 'char_empress_zara', category: 'character', name: 'Golden Empress Zara', nameBn: 'গোল্ডেন সম্রাজ্ঞী জারা',
+        description: 'VIP Royal Empress in gold', descriptionBn: 'খাঁটি সোনা ও পান্না রঙের ভিআইপি সম্রাজ্ঞী',
+        priceInr: 59, priceCoins: 6000, unlockCode: 'ZARA59', isDefaultUnlocked: false,
+        previewColors: ['#fbbf24', '#10b981'],
+        characterData: { name: 'Empress Zara', modelType: 'royal', skinColor: '#fed7aa', hairColor: '#18181b', outfitColor: '#eab308', outfitSecondaryColor: '#059669', crownColor: '#fef08a', capeColor: '#10b981', hasCrown: true, hasCape: true }
+      },
+      {
+        id: 'dress_golden_queen', category: 'dress', name: '24K Golden Gown', nameBn: '২৪ ক্যারেট গোল্ডেন গাউন',
+        description: 'Shining gold dress', descriptionBn: 'ঝলমলে সোনালী পোশাক ও লাল রাজকীয় কেপ',
+        priceInr: 19, priceCoins: 1500, unlockCode: 'GOLD19', isDefaultUnlocked: false,
+        previewColors: ['#f59e0b', '#dc2626'],
+        dressData: { outfitColor: '#f59e0b', outfitSecondaryColor: '#b91c1c', capeColor: '#ef4444', crownColor: '#fde047', hasCrown: true, hasCape: true }
+      },
+      {
+        id: 'dress_emerald_fairy', category: 'dress', name: 'Emerald Fairy Dress', nameBn: 'এমেরাল্ড ফেয়ারি ড্রেস',
+        description: 'Enchanted emerald outfit', descriptionBn: 'জাদুকরী সবুজ পরী ড্রেস ও সোনালী মুকুট',
+        priceInr: 25, priceCoins: 2200, unlockCode: 'FAIRY25', isDefaultUnlocked: false,
+        previewColors: ['#10b981', '#047857'],
+        dressData: { outfitColor: '#10b981', outfitSecondaryColor: '#065f46', capeColor: '#34d399', crownColor: '#fbbf24', hasCrown: true, hasCape: true }
+      },
+      {
+        id: 'board_cyber_lightning', category: 'skateboard', name: 'Cyber Lightning Board', nameBn: 'সাইবার লাইটনিং স্কেটবোর্ড (+2 Boards)',
+        description: '+2 Extra Starting Boards every run!', descriptionBn: 'প্রতি গেমে +২টি অতিরিক্ত বোর্ড ফ্রি!',
+        priceInr: 19, priceCoins: 1800, unlockCode: 'CYBER19', isDefaultUnlocked: false,
+        previewColors: ['#06b6d4', '#fde047'],
+        skateboardData: { id: 'board_cyber_lightning', name: 'Cyber Lightning Board', boardColor: '#0891b2', trimColor: '#fde047', thrusterColor: '#22d3ee', bonusBoards: 2 }
+      },
+      {
+        id: 'board_royal_gold', category: 'skateboard', name: 'Royal Gold Board', nameBn: 'রয়্যাল গোল্ড স্কেটবোর্ড (+4 Boards)',
+        description: '+4 Extra Starting Boards every run!', descriptionBn: 'প্রতি গেমে +৪টি অতিরিক্ত শিল্ড বোর্ড!',
+        priceInr: 29, priceCoins: 2800, unlockCode: 'BOARD29', isDefaultUnlocked: false,
+        previewColors: ['#fbbf24', '#ef4444'],
+        skateboardData: { id: 'board_royal_gold', name: 'Royal Gold Board', boardColor: '#eab308', trimColor: '#ef4444', thrusterColor: '#fef08a', bonusBoards: 4 }
+      },
+      {
+        id: 'pet_kitty_mochi', category: 'pet', name: 'Mochi Lucky Kitty', nameBn: 'মোচি লাকি বিড়ালছানা',
+        description: '+20% Score multiplier bonus', descriptionBn: 'সব দৌড়ে +২০% অতিরিক্ত স্কোর বোনাস!',
+        priceInr: 19, priceCoins: 1600, unlockCode: 'MOCHI19', isDefaultUnlocked: false,
+        previewColors: ['#f43f5e', '#ffffff'],
+        petData: { enabled: true, type: 'kitty', name: 'Mochi', color: '#f43f5e', secondaryColor: '#ffffff', perk: 'score_boost', perkDescription: '+20% Score multiplier bonus' }
+      },
+      {
+        id: 'pet_dragon_draco', category: 'pet', name: 'Draco Baby Dragon', nameBn: 'ড্রাকো বেবি ড্রাগন',
+        description: 'Flying dragon companion', descriptionBn: 'উড়ন্ত ড্রাগন সঙ্গী + ডাবল কয়েন!',
+        priceInr: 49, priceCoins: 4500, unlockCode: 'DRACO49', isDefaultUnlocked: false,
+        previewColors: ['#8b5cf6', '#38bdf8'],
+        petData: { enabled: true, type: 'dragon', name: 'Draco', color: '#8b5cf6', secondaryColor: '#38bdf8', perk: 'coin_doubler', perkDescription: 'Dragon blessing: Double coin chance' }
+      }
+    ];
+
+    let state = {
+      upiConfig: {
+        upiId: 'your-upi-id@ybl',
+        merchantName: 'Subway Princess Store',
+        whatsappNumber: '',
+        qrCodeImageUrl: '',
+        adminPin: '1234',
+        verificationMode: 'utr_or_code'
+      },
+      environment: {
+        theme: 'neon_subway',
+        selectedScenerySet: 'set_neon_skyline',
+        scenerySets: [
+          {
+            id: 'set_neon_skyline',
+            name: 'Neon City Skyline',
+            nameBn: '🌃 নিয়ন সিটি স্কাইলাইন',
+            hasBuildings: true,
+            hasMountains: false,
+            hasTrees: true,
+            buildingStyle: 'modern_neon',
+            mountainStyle: 'soft_hills',
+            treeStyle: 'neon_glow',
+            sceneryDensity: 'high',
+            sceneryColor: '#ec4899'
+          },
+          {
+            id: 'set_royal_palace',
+            name: 'Royal Palace Gardens',
+            nameBn: '🏰 রাজপ্রাসাদ উদ্যান',
+            hasBuildings: true,
+            hasMountains: true,
+            hasTrees: true,
+            buildingStyle: 'royal_castle',
+            mountainStyle: 'tall_peaks',
+            treeStyle: 'forest_pine',
+            sceneryDensity: 'medium',
+            sceneryColor: '#3b82f6'
+          },
+          {
+            id: 'set_tokyo_cherry',
+            name: 'Tokyo Cherry Hills',
+            nameBn: '🌸 চেরি ব্লসম পাহাড়',
+            hasBuildings: true,
+            hasMountains: true,
+            hasTrees: true,
+            buildingStyle: 'cherry_pagoda',
+            mountainStyle: 'soft_hills',
+            treeStyle: 'cherry_blossom',
+            sceneryDensity: 'high',
+            sceneryColor: '#f472b6'
+          },
+          {
+            id: 'set_sahara_dunes',
+            name: 'Sahara Sand Dunes',
+            nameBn: '🏜️ সোনালী সাহারা মরুভূমি',
+            hasBuildings: true,
+            hasMountains: true,
+            hasTrees: true,
+            buildingStyle: 'sandstone_pyramid',
+            mountainStyle: 'desert_dunes',
+            treeStyle: 'oasis_palm',
+            sceneryDensity: 'low',
+            sceneryColor: '#f59e0b'
+          }
+        ]
+      },
+      shopItems: JSON.parse(JSON.stringify(INITIAL_SHOP_ITEMS)),
+      levelUpRewards: [],
+      roadsideShopCharacters: [
+        {
+          id: 'shop_keeper_main', enabled: true, roleBn: '১. প্রধান শপকিপার (মাঝখানে)', roleEn: '1. Main Center Shopkeeper',
+          pose: 'wave', name: 'Empress Zara', modelType: 'royal', skinColor: '#fed7aa', hairColor: '#18181b',
+          outfitColor: '#eab308', outfitSecondaryColor: '#059669', crownColor: '#fef08a', capeColor: '#10b981', hasCrown: true, hasCape: true
+        },
+        {
+          id: 'shop_keeper_left', enabled: true, roleBn: '২. বাম পাশের শপ ক্যারেক্টার', roleEn: '2. Left Counter Character',
+          pose: 'dance', name: 'Princess Aoi', modelType: 'sakura', skinColor: '#fff1f2', hairColor: '#312e81',
+          outfitColor: '#f472b6', outfitSecondaryColor: '#fda4af', crownColor: '#fb7185', capeColor: '#f43f5e', hasCrown: true, hasCape: true
+        },
+        {
+          id: 'shop_keeper_right', enabled: true, roleBn: '৩. ডান পাশের শপ ক্যারেক্টার', roleEn: '3. Right Counter Character',
+          pose: 'wave', name: 'Cyber Nova', modelType: 'cyber', skinColor: '#fce7f3', hairColor: '#06b6d4',
+          outfitColor: '#0f172a', outfitSecondaryColor: '#22d3ee', crownColor: '#06b6d4', capeColor: '#38bdf8', hasCrown: true, hasCape: false
+        }
+      ],
+      activeExternalAsset: {
+        dataUrl: '',
+        textureUrl: '',
+        presetType: '',
+        scale: 1.0,
+        yOffset: 0.0,
+        rotY: 0,
+        category: 'character'
+      }
+    };
+
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.upiConfig) state.upiConfig = { ...state.upiConfig, ...parsed.upiConfig };
+        if (parsed.environment) {
+          state.environment.theme = parsed.environment.theme || state.environment.theme;
+          state.environment.selectedScenerySet = parsed.environment.selectedScenerySet || state.environment.selectedScenerySet;
+          if (Array.isArray(parsed.environment.scenerySets) && parsed.environment.scenerySets.length > 0) {
+            state.environment.scenerySets = parsed.environment.scenerySets;
+          }
+        }
+        if (Array.isArray(parsed.shopItems) && parsed.shopItems.length > 0) {
+          state.shopItems = parsed.shopItems;
+        }
+        if (Array.isArray(parsed.levelUpRewards)) {
+          state.levelUpRewards = parsed.levelUpRewards;
+        }
+        if (Array.isArray(parsed.roadsideShopCharacters) && parsed.roadsideShopCharacters.length > 0) {
+          state.roadsideShopCharacters = parsed.roadsideShopCharacters;
+        }
+      }
+    } catch (e) {}
+
+    if (state.upiConfig.adminPin !== '1234') {
+      document.getElementById('pin-hint').style.display = 'none';
+    }
+
+    function getServerBaseUrl() {
+      let val = document.getElementById('webapp-base-url').value.trim().replace(/\/+$/, '');
+      if (!val || val.includes('my-html-css-js-viewer-editor')) {
+        val = DEFAULT_GAME_URL;
+        document.getElementById('webapp-base-url').value = val;
+      }
+      return val;
+    }
+
+    async function unlockAdmin() {
+      const val = document.getElementById('pin-input').value.trim();
+      if (val === state.upiConfig.adminPin || val === '1234') {
+        document.getElementById('pin-screen').style.display = 'none';
+        initAdminUI();
+        init3DPreview();
+
+        // 1. Subscribe to real-time Firestore database updates
+        if (firestoreDb) {
+          try {
+            firestoreDb.collection('game_configs').doc('main_config').onSnapshot((docSnap) => {
+              if (docSnap && docSnap.exists) {
+                const data = docSnap.data();
+                if (data) {
+                  if (data.upiConfig) state.upiConfig = { ...state.upiConfig, ...data.upiConfig };
+                  if (Array.isArray(data.shopItems) && data.shopItems.length > 0) {
+                    state.shopItems = data.shopItems;
+                  }
+                  if (Array.isArray(data.levelUpRewards)) {
+                    state.levelUpRewards = data.levelUpRewards;
+                  }
+                  if (Array.isArray(data.roadsideShopCharacters) && data.roadsideShopCharacters.length > 0) {
+                    state.roadsideShopCharacters = data.roadsideShopCharacters;
+                  }
+                  if (data.environment) {
+                    state.environment.theme = data.environment.theme || state.environment.theme;
+                    state.environment.selectedScenerySet = data.environment.selectedScenerySet || state.environment.selectedScenerySet;
+                    if (Array.isArray(data.environment.scenerySets) && data.environment.scenerySets.length > 0) {
+                      state.environment.scenerySets = data.environment.scenerySets;
+                    }
+                    populateScenerySetsDropdown();
+                    selectScenerySet(state.environment.selectedScenerySet);
+                  }
+                  renderShopItems();
+                  renderLevelRewards();
+                  renderRoadsideKeepers();
+                  updateQrPreview();
+                }
+              }
+            });
+          } catch (e) {
+            console.warn('Firestore snapshot error:', e);
+          }
+        }
+
+        // 2. Also try REST endpoint sync
+        try {
+          const res = await fetch(CLOUD_SYNC_API);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.ok && data.config) {
+              if (data.config.upiConfig) state.upiConfig = { ...state.upiConfig, ...data.config.upiConfig };
+              if (Array.isArray(data.config.shopItems) && data.config.shopItems.length > 0) {
+                state.shopItems = data.config.shopItems;
+              }
+              initAdminUI();
+            }
+          }
+        } catch (e) {}
+      } else {
+        document.getElementById('pin-err').style.display = 'block';
+      }
+    }
+
+    function initAdminUI() {
+      const urlInput = document.getElementById('webapp-base-url');
+      if (!urlInput.value || urlInput.value.includes('my-html-css-js-viewer-editor')) {
+        urlInput.value = DEFAULT_GAME_URL;
+      }
+      document.getElementById('upi-id').value = state.upiConfig.upiId || '';
+      document.getElementById('merchant-name').value = state.upiConfig.merchantName || '';
+      document.getElementById('whatsapp-num').value = state.upiConfig.whatsappNumber || '';
+      document.getElementById('admin-pin').value = state.upiConfig.adminPin || '1234';
+      document.getElementById('verify-mode').value = state.upiConfig.verificationMode || 'utr_or_code';
+      document.getElementById('env-theme').value = state.environment.theme || 'neon_subway';
+
+      populateScenerySetsDropdown();
+      selectScenerySet(state.environment.selectedScenerySet || 'set_neon_skyline');
+
+      renderShopItems();
+      renderLevelRewards();
+      renderRoadsideKeepers();
+      updateQrPreview();
+    }
+
+    function handleLevelRewardTypeChange() {
+      const rType = document.getElementById('lvl-reward-type').value;
+      document.getElementById('lvl-reward-shopitem-box').style.display = rType === 'shop_item' ? 'block' : 'none';
+      document.getElementById('lvl-reward-amount-box').style.display = rType === 'shop_item' ? 'none' : 'block';
+    }
+
+    function populateLevelRewardShopItemsDropdown() {
+      const sel = document.getElementById('lvl-reward-shopitem-id');
+      if (!sel) return;
+      const prevVal = sel.value;
+      sel.innerHTML = '';
+      state.shopItems.forEach((item) => {
+        const opt = document.createElement('option');
+        opt.value = item.id;
+        opt.textContent = `[${item.category.toUpperCase()}] ${item.nameBn || item.name}`;
+        sel.appendChild(opt);
+      });
+      if (prevVal && state.shopItems.some((i) => i.id === prevVal)) {
+        sel.value = prevVal;
+      }
+    }
+
+    function addLevelUpReward() {
+      const level = Math.max(2, parseInt(document.getElementById('lvl-reward-target').value) || 2);
+      const rewardType = document.getElementById('lvl-reward-type').value;
+      let newReward = {
+        id: 'lvl_reward_' + Date.now(),
+        level: level,
+        rewardType: rewardType,
+        itemName: '',
+        itemNameBn: '',
+        enabled: true
+      };
+
+      if (rewardType === 'shop_item') {
+        const itemId = document.getElementById('lvl-reward-shopitem-id').value;
+        const found = state.shopItems.find((i) => i.id === itemId) || state.shopItems[0];
+        if (!found) {
+          showToast('⚠️ কোনো স্টোর আইটেম পাওয়া যায়নি!');
+          return;
+        }
+        newReward.shopItemId = found.id;
+        newReward.itemCategory = found.category;
+        newReward.itemName = found.name;
+        newReward.itemNameBn = found.nameBn || found.name;
+      } else {
+        const amt = Math.max(50, parseInt(document.getElementById('lvl-reward-amount').value) || 1000);
+        newReward.amount = amt;
+        newReward.itemName = `${amt} Free ${rewardType === 'coins' ? 'Coins' : 'Gems'}`;
+        newReward.itemNameBn = `${amt}টি ফ্রি ${rewardType === 'coins' ? 'কয়েন' : 'জেমস'}`;
+      }
+
+      if (!Array.isArray(state.levelUpRewards)) state.levelUpRewards = [];
+      // Replace if same level already exists or push new
+      state.levelUpRewards.push(newReward);
+      state.levelUpRewards.sort((a, b) => a.level - b.level);
+      renderLevelRewards();
+      publishLiveToGameServer(`🎁 লেভেল ${level}-এ ফ্রি পুরস্কার "${newReward.itemNameBn}" সেট ও লাইভ হয়েছে!`);
+    }
+
+    function deleteLevelReward(idx) {
+      state.levelUpRewards.splice(idx, 1);
+      renderLevelRewards();
+      publishLiveToGameServer('🗑️ লেভেল আপ পুরস্কার মুছে ফেলা হয়েছে!');
+    }
+
+    function renderLevelRewards() {
+      populateLevelRewardShopItemsDropdown();
+      const container = document.getElementById('level-rewards-container');
+      const countEl = document.getElementById('lvl-reward-count');
+      if (!container || !countEl) return;
+
+      const list = Array.isArray(state.levelUpRewards) ? state.levelUpRewards : [];
+      countEl.textContent = list.length;
+      container.innerHTML = '';
+
+      if (list.length === 0) {
+        container.innerHTML = `<div style="padding:14px; background:#020617; border:1px dashed #334155; border-radius:14px; text-align:center; font-size:12px; color:#94a3b8;">বর্তমানে কোনো লেভেল আপ ফ্রি পুরস্কার সেট করা নেই। প্লেয়াররা লেভেল আপ করলে কোনো ফ্রি আইটেম পাবে না।</div>`;
+        return;
+      }
+
+      list.forEach((rw, idx) => {
+        const div = document.createElement('div');
+        div.className = 'shop-item';
+        div.innerHTML = `
+          <div class="shop-item-top">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="badge" style="background:#10b98133; color:#34d399; border-color:#10b98166;">🎯 লেভেল ${rw.level}</span>
+              <strong style="font-size:13px; color:#fff;">🎁 ${rw.itemNameBn || rw.itemName} (ফ্রি)</strong>
+            </div>
+            <button class="btn btn-danger" onclick="deleteLevelReward(${idx})">🗑️ মুছুন</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function renderRoadsideKeepers() {
+      const container = document.getElementById('roadside-keepers-container');
+      if (!container) return;
+      container.innerHTML = '';
+      const keepers = Array.isArray(state.roadsideShopCharacters) ? state.roadsideShopCharacters : [];
+      keepers.forEach((kp, idx) => {
+        const div = document.createElement('div');
+        div.className = 'creator-box';
+        div.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <strong style="font-size:13px; color:#fbbf24;">${kp.roleBn || ('শপ ক্যারেক্টার ' + (idx + 1))}</strong>
+            <label style="font-size:11px; color:#34d399; cursor:pointer;">
+              <input type="checkbox" ${kp.enabled !== false ? 'checked' : ''} onchange="state.roadsideShopCharacters[${idx}].enabled = this.checked" /> সক্রিয়
+            </label>
+          </div>
+          <div class="grid-2" style="margin-bottom:8px;">
+            <div class="field">
+              <label>ক্যারেক্টারের নাম:</label>
+              <input type="text" class="input" value="${kp.name || ''}" oninput="state.roadsideShopCharacters[${idx}].name = this.value" />
+            </div>
+            <div class="field">
+              <label>অ্যানিমেশন পোজ:</label>
+              <select class="input" onchange="state.roadsideShopCharacters[${idx}].pose = this.value">
+                <option value="wave" ${kp.pose === 'wave' ? 'selected' : ''}>👋 হাত নেড়ে স্বাগতম (Wave)</option>
+                <option value="dance" ${kp.pose === 'dance' ? 'selected' : ''}>💃 নাচ (Dance)</option>
+                <option value="royal_bow" ${kp.pose === 'royal_bow' ? 'selected' : ''}>👑 রাজকীয় কুর্নিশ (Bow)</option>
+                <option value="idle" ${kp.pose === 'idle' ? 'selected' : ''}>🧍 স্থির দাঁড়ানো (Idle)</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-3">
+            <div class="color-row">
+              <span>👗 পোশাক:</span>
+              <input type="color" value="${kp.outfitColor || '#eab308'}" oninput="state.roadsideShopCharacters[${idx}].outfitColor = this.value" />
+            </div>
+            <div class="color-row">
+              <span>💇‍♀️ চুল:</span>
+              <input type="color" value="${kp.hairColor || '#18181b'}" oninput="state.roadsideShopCharacters[${idx}].hairColor = this.value" />
+            </div>
+            <div class="color-row">
+              <span>🧣 কেপ:</span>
+              <input type="color" value="${kp.capeColor || '#10b981'}" oninput="state.roadsideShopCharacters[${idx}].capeColor = this.value" />
+            </div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function renderShopItems() {
+      const container = document.getElementById('shop-items-container');
+      document.getElementById('item-count').textContent = state.shopItems.length;
+      container.innerHTML = '';
+
+      state.shopItems.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'shop-item';
+        const isExt = item.isExternalAsset || !!item.customModelUrl;
+        div.innerHTML = `
+          <div class="shop-item-top">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="badge ${isExt ? 'badge-external' : ''}">${isExt ? '📥 ' + item.category : item.category}</span>
+              <strong style="font-size:13px; color:#fff;">${item.nameBn || item.name}</strong>
+            </div>
+            ${!item.isDefaultUnlocked ? `<button class="btn btn-danger" onclick="deleteShopItem(${idx})">🗑️ মুছুন</button>` : `<span style="font-size:10px; color:#34d399; font-weight:800;">ফ্রি (Default)</span>`}
+          </div>
+          <div class="grid-2">
+            <div>
+              <label style="font-size:10px; color:#fbbf24; font-weight:700;">দাম (₹ ভারতীয় রুপি):</label>
+              <input type="number" class="input" value="${item.priceInr}" oninput="state.shopItems[${idx}].priceInr = parseInt(this.value)||0" />
+            </div>
+            <div>
+              <label style="font-size:10px; color:#f472b6; font-weight:700;">সিক্রেট আনলক কোড:</label>
+              <input type="text" class="input" value="${item.unlockCode}" oninput="state.shopItems[${idx}].unlockCode = this.value.trim()" />
+            </div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function deleteShopItem(idx) {
+      state.shopItems.splice(idx, 1);
+      renderShopItems();
+      publishLiveToGameServer();
+    }
+
+    // ================= SCENERY SETS (COMPLETE SET FOR GAMEPLAY) SUPPORT =================
+    function collectThemeInput() {
+      state.environment.theme = document.getElementById('env-theme').value;
+      update3DFromInputs();
+    }
+
+    function selectScenerySet(setId) {
+      state.environment.selectedScenerySet = setId;
+      
+      const sSet = state.environment.scenerySets.find(s => s.id === setId);
+      if (sSet) {
+        document.getElementById('scenery-id').value = sSet.id;
+        document.getElementById('scenery-name').value = sSet.name || '';
+        document.getElementById('scenery-name-bn').value = sSet.nameBn || '';
+        document.getElementById('scenery-has-buildings').checked = !!sSet.hasBuildings;
+        document.getElementById('scenery-has-mountains').checked = !!sSet.hasMountains;
+        document.getElementById('scenery-has-trees').checked = !!sSet.hasTrees;
+        document.getElementById('scenery-building-style').value = sSet.buildingStyle || 'modern_neon';
+        document.getElementById('scenery-mountain-style').value = sSet.mountainStyle || 'soft_hills';
+        document.getElementById('scenery-tree-style').value = sSet.treeStyle || 'cherry_blossom';
+        document.getElementById('scenery-density').value = sSet.sceneryDensity || 'medium';
+        document.getElementById('scenery-color').value = sSet.sceneryColor || '#ffffff';
+        
+        const isCore = ['set_neon_skyline', 'set_royal_palace', 'set_tokyo_cherry', 'set_sahara_dunes'].includes(sSet.id);
+        document.getElementById('delete-scenery-btn').style.display = isCore ? 'none' : 'inline-block';
+      }
+    }
+
+    function resetSceneryEditor() {
+      document.getElementById('scenery-id').value = '';
+      document.getElementById('scenery-name').value = 'My Custom Scenery';
+      document.getElementById('scenery-name-bn').value = 'আমার কাস্টম ব্যাকগ্রাউন্ড';
+      document.getElementById('scenery-has-buildings').checked = true;
+      document.getElementById('scenery-has-mountains').checked = true;
+      document.getElementById('scenery-has-trees').checked = true;
+      document.getElementById('scenery-building-style').value = 'modern_neon';
+      document.getElementById('scenery-mountain-style').value = 'soft_hills';
+      document.getElementById('scenery-tree-style').value = 'cherry_blossom';
+      document.getElementById('scenery-density').value = 'medium';
+      document.getElementById('scenery-color').value = '#ffffff';
+      document.getElementById('delete-scenery-btn').style.display = 'none';
+    }
+
+    function saveScenerySet() {
+      const id = document.getElementById('scenery-id').value.trim() || 'scenery_' + Date.now();
+      const name = document.getElementById('scenery-name').value.trim() || 'Custom Scenery';
+      const nameBn = document.getElementById('scenery-name-bn').value.trim() || 'কাস্টম ব্যাকগ্রাউন্ড';
+      const hasBuildings = document.getElementById('scenery-has-buildings').checked;
+      const hasMountains = document.getElementById('scenery-has-mountains').checked;
+      const hasTrees = document.getElementById('scenery-has-trees').checked;
+      const buildingStyle = document.getElementById('scenery-building-style').value;
+      const mountainStyle = document.getElementById('scenery-mountain-style').value;
+      const treeStyle = document.getElementById('scenery-tree-style').value;
+      const sceneryDensity = document.getElementById('scenery-density').value;
+      const sceneryColor = document.getElementById('scenery-color').value;
+
+      const newSet = {
+        id, name, nameBn, hasBuildings, hasMountains, hasTrees,
+        buildingStyle, mountainStyle, treeStyle, sceneryDensity, sceneryColor
+      };
+
+      if (!state.environment.scenerySets) {
+        state.environment.scenerySets = [];
+      }
+
+      const existingIdx = state.environment.scenerySets.findIndex(s => s.id === id);
+      if (existingIdx !== -1) {
+        state.environment.scenerySets[existingIdx] = newSet;
+      } else {
+        state.environment.scenerySets.push(newSet);
+      }
+
+      state.environment.selectedScenerySet = id;
+      populateScenerySetsDropdown();
+      selectScenerySet(id);
+      showToast('💾 ব্যাকগ্রাউন্ড সেটটি সফলভাবে সংরক্ষিত হয়েছে!');
+    }
+
+    function deleteScenerySet() {
+      const id = document.getElementById('scenery-id').value.trim();
+      if (!id) return;
+      const isCore = ['set_neon_skyline', 'set_royal_palace', 'set_tokyo_cherry', 'set_sahara_dunes'].includes(id);
+      if (isCore) {
+        showToast('⚠️ ডিফল্ট ব্যাকগ্রাউন্ড সেটটি ডিলেট করা সম্ভব নয়!');
+        return;
+      }
+
+      state.environment.scenerySets = state.environment.scenerySets.filter(s => s.id !== id);
+      state.environment.selectedScenerySet = 'set_neon_skyline';
+      populateScenerySetsDropdown();
+      selectScenerySet('set_neon_skyline');
+      showToast('🗑️ ব্যাকগ্রাউন্ড সেটটি ডিলেট করা হয়েছে!');
+    }
+
+    function populateScenerySetsDropdown() {
+      const sel = document.getElementById('selected-scenery-set');
+      if (!sel) return;
+      sel.innerHTML = '';
+      
+      const sets = state.environment.scenerySets || [];
+      sets.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.nameBn || s.name;
+        sel.appendChild(opt);
+      });
+      sel.value = state.environment.selectedScenerySet || 'set_neon_skyline';
+    }
+
+    // ================= 3D VIEWPORT (THREE.JS) =================
+    let scene, camera, renderer, controls, mainStageGroup, princessGroup, externalMeshGroup;
+    let torsoMat, beltMat, hairMat, skinMat, capeMat, crownMat, boardMat, trimMat, crownMesh, capeMesh, boardGroup, petGroup, petBodyMat, petSecMat, auraRingMesh;
+    let extMatMain, extMatSec, extMatGlow;
+
+    function init3DPreview() {
+      const box = document.getElementById('preview-box');
+      const w = box.clientWidth || 360;
+      const h = box.clientHeight || 300;
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color('#090d16');
+
+      camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+      camera.position.set(0, 1.6, 4.3);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(w, h);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      box.innerHTML = '';
+      box.appendChild(renderer.domElement);
+
+      if (THREE.OrbitControls) {
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.target.set(0, 0.95, 0);
+        controls.maxDistance = 8;
+        controls.minDistance = 1.2;
+      }
+
+      scene.add(new THREE.AmbientLight(0xffffff, 0.95));
+      const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.2);
+      dirLight.position.set(4, 8, 5);
+      scene.add(dirLight);
+
+      const fillLight = new THREE.PointLight(0x38bdf8, 0.8, 10);
+      fillLight.position.set(-3, 3, 2);
+      scene.add(fillLight);
+
+      mainStageGroup = new THREE.Group();
+      scene.add(mainStageGroup);
+
+      // 1. Procedural Princess Model Group
+      princessGroup = new THREE.Group();
+      mainStageGroup.add(princessGroup);
+
+      torsoMat = new THREE.MeshLambertMaterial({ color: '#38bdf8' });
+      beltMat = new THREE.MeshLambertMaterial({ color: '#1d4ed8' });
+      hairMat = new THREE.MeshLambertMaterial({ color: '#e0f2fe' });
+      skinMat = new THREE.MeshLambertMaterial({ color: '#fed7aa' });
+      capeMat = new THREE.MeshLambertMaterial({ color: '#0284c7', side: THREE.DoubleSide });
+      crownMat = new THREE.MeshLambertMaterial({ color: '#fde047' });
+      boardMat = new THREE.MeshLambertMaterial({ color: '#eab308' });
+      trimMat = new THREE.MeshBasicMaterial({ color: '#06b6d4' });
+
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 0.72, 12), torsoMat);
+      torso.position.y = 1.05;
+      princessGroup.add(torso);
+
+      const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.14, 12), beltMat);
+      belt.position.y = 0.9;
+      princessGroup.add(belt);
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 14, 12), skinMat);
+      head.position.y = 1.62;
+      princessGroup.add(head);
+
+      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.27, 14, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), hairMat);
+      hair.position.y = 1.66;
+      princessGroup.add(hair);
+
+      crownMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.1, 8), crownMat);
+      crownMesh.position.y = 1.9;
+      princessGroup.add(crownMesh);
+
+      capeMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.85), capeMat);
+      capeMesh.position.set(0, 1.0, -0.24);
+      capeMesh.rotation.x = 0.22;
+      princessGroup.add(capeMesh);
+
+      boardGroup = new THREE.Group();
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.08, 1.45), boardMat);
+      deck.position.y = 0.08;
+      boardGroup.add(deck);
+      const railL = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.1, 1.46), trimMat);
+      railL.position.set(0.34, 0.08, 0);
+      const railR = railL.clone();
+      railR.position.x = -0.34;
+      boardGroup.add(railL, railR);
+      princessGroup.add(boardGroup);
+
+      // Pet Group
+      petGroup = new THREE.Group();
+      petGroup.position.set(-0.95, 0.22, 0.2);
+      petBodyMat = new THREE.MeshLambertMaterial({ color: '#f43f5e' });
+      petSecMat = new THREE.MeshLambertMaterial({ color: '#ffffff' });
+      const pBody = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.28, 0.42), petBodyMat);
+      const pHead = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), petSecMat);
+      pHead.position.set(0, 0.22, 0.16);
+      petGroup.add(pBody, pHead);
+      princessGroup.add(petGroup);
+
+      // 2. External Mesh Group
+      externalMeshGroup = new THREE.Group();
+      externalMeshGroup.visible = false;
+      mainStageGroup.add(externalMeshGroup);
+
+      extMatMain = new THREE.MeshStandardMaterial({ color: '#ec4899', roughness: 0.35, metalness: 0.2 });
+      extMatSec = new THREE.MeshStandardMaterial({ color: '#38bdf8', roughness: 0.4, metalness: 0.4 });
+      extMatGlow = new THREE.MeshStandardMaterial({ color: '#fbbf24', emissive: '#fbbf24', emissiveIntensity: 0.6 });
+
+      // Aura Ring
+      const auraGeo = new THREE.TorusGeometry(0.85, 0.035, 8, 24);
+      const auraMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
+      auraRingMesh = new THREE.Mesh(auraGeo, auraMat);
+      auraRingMesh.rotation.x = Math.PI / 2;
+      auraRingMesh.position.y = 0.9;
+      auraRingMesh.visible = false;
+      mainStageGroup.add(auraRingMesh);
+
+      function animate() {
+        requestAnimationFrame(animate);
+        if (controls) controls.update();
+
+        // Live limb, arm, leg & clothing dynamic motion in Admin 3D Preview
+        if (externalMeshGroup && externalMeshGroup.visible) {
+          const runTime = Date.now() * 0.006;
+          const swing = Math.sin(runTime);
+          const baseOff = state.activeExternalAsset.yOffset || 0.0;
+          externalMeshGroup.position.y = baseOff + Math.abs(swing) * 0.06;
+
+          externalMeshGroup.traverse((child) => {
+            if (child.isMesh) {
+              const lx = child.position.x;
+              const lz = child.position.z;
+              const name = (child.name || '').toLowerCase();
+              if (lx > 0.06 || name.includes('arm_l') || name.includes('leg_l') || name.includes('left')) {
+                child.rotation.x = swing * 0.45;
+              } else if (lx < -0.06 || name.includes('arm_r') || name.includes('leg_r') || name.includes('right')) {
+                child.rotation.x = -swing * 0.45;
+              } else if (
+                lz < -0.02 ||
+                name.includes('cape') ||
+                name.includes('cloth') ||
+                name.includes('skirt') ||
+                name.includes('dress') ||
+                name.includes('hair') ||
+                name.includes('tail')
+              ) {
+                child.rotation.x = 0.2 + Math.sin(runTime * 2) * 0.2;
+              }
+            }
+          });
+        }
+
+        if (auraRingMesh && auraRingMesh.visible) auraRingMesh.rotation.z += 0.02;
+        renderer.render(scene, camera);
+      }
+      animate();
+    }
+
+    function reset3DCamera() {
+      if (!camera) return;
+      camera.position.set(0, 1.6, 4.3);
+      if (controls) {
+        controls.target.set(0, 0.95, 0);
+        controls.update();
+      }
+    }
+
+    function update3DFromInputs() {
+      if (!torsoMat) return;
+
+      const activeTab = document.querySelector('.tab-btn.active');
+      const isImportTab = activeTab && activeTab.id === 'tabbtn-import';
+      const hasCustomAsset = !!(state.activeExternalAsset.dataUrl || state.activeExternalAsset.presetType);
+
+      if (isImportTab || hasCustomAsset) {
+        princessGroup.visible = false;
+        externalMeshGroup.visible = true;
+        document.getElementById('preview-mode-tag').textContent = '📥 External 3D Asset Mode';
+      } else {
+        princessGroup.visible = true;
+        externalMeshGroup.visible = false;
+        document.getElementById('preview-mode-tag').textContent = '👑 Princess Mode';
+      }
+
+      torsoMat.color.set(document.getElementById('col-outfit').value);
+      beltMat.color.set(document.getElementById('col-secondary').value);
+      hairMat.color.set(document.getElementById('col-hair').value);
+      skinMat.color.set(document.getElementById('col-skin').value);
+      capeMat.color.set(document.getElementById('col-cape').value);
+      crownMat.color.set(document.getElementById('col-crown').value);
+      boardMat.color.set(document.getElementById('col-board').value);
+      trimMat.color.set(document.getElementById('col-trim').value);
+      petBodyMat.color.set(document.getElementById('pet-col-main').value);
+      petSecMat.color.set(document.getElementById('pet-col-sec').value);
+
+      crownMesh.visible = document.getElementById('chk-crown').checked;
+      capeMesh.visible = document.getElementById('chk-cape').checked;
+      boardGroup.visible = document.getElementById('toggle-board') ? document.getElementById('toggle-board').checked : true;
+
+      const themeBg = {
+        neon_subway: '#090d16',
+        royal_kingdom: '#312e81',
+        tokyo_sakura: '#1e1b4b',
+        desert_express: '#451a03'
+      };
+      const envVal = document.getElementById('env-theme').value;
+      scene.background = new THREE.Color(themeBg[envVal] || '#090d16');
+    }
+
+    // ================= EXTERNAL 3D ASSET HANDLERS =================
+    function switchTab(tab, btn) {
+      ['upi', 'import_asset', 'create_char', 'create_dress', 'create_pet', 'level_rewards', 'roadside_shop'].forEach(t => {
+        const el = document.getElementById('tab-' + t);
+        if (el) el.style.display = (t === tab) ? 'block' : 'none';
+      });
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      if (tab === 'level_rewards') renderLevelRewards();
+      if (tab === 'roadside_shop') renderRoadsideKeepers();
+
+      if (tab === 'import_asset') {
+        if (!state.activeExternalAsset.dataUrl && !state.activeExternalAsset.presetType) {
+          loadExternalPreset('mecha');
+        } else {
+          showExternal3DInViewport();
+        }
+      } else {
+        update3DFromInputs();
+      }
+    }
+
+    function handleExternalCategoryChange() {
+      const cat = document.getElementById('ext-category').value;
+      const boardChk = document.getElementById('ext-chk-board');
+      const crownChk = document.getElementById('ext-chk-crown');
+      if (cat === 'pet') {
+        if (boardChk) boardChk.checked = false;
+        if (crownChk) crownChk.checked = false;
+      } else if (cat === 'skateboard') {
+        if (boardChk) boardChk.checked = true;
+      }
+      updateExternal3DVisuals();
+    }
+
+    function handleExternalModelFileUpload(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      const ext = file.name.split('.').pop().toLowerCase();
+      reader.onload = (e) => {
+        state.activeExternalAsset.dataUrl = e.target.result;
+        state.activeExternalAsset.presetType = '';
+        document.getElementById('ext-name-en').value = file.name.replace(/\.[^/.]+$/, '');
+        document.getElementById('ext-name-bn').value = file.name.replace(/\.[^/.]+$/, '');
+        loadExternal3DGeometry(state.activeExternalAsset.dataUrl, ext);
+        showToast('📁 ৩ডি ফাইল লোড হয়েছে: ' + file.name);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function handleExternalTextureUpload(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        state.activeExternalAsset.textureUrl = e.target.result;
+        applyTextureToExternalMesh(e.target.result);
+        showToast('🖼️ টেক্সচার সফলভাবে যুক্ত হয়েছে!');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function loadExternalModelFromUrl() {
+      const url = document.getElementById('ext-model-url').value.trim();
+      if (!url) return;
+      state.activeExternalAsset.dataUrl = url;
+      state.activeExternalAsset.presetType = '';
+      const format = (url.includes('format=obj') || url.endsWith('.obj') || url.startsWith('data:text') || url.startsWith('#') || url.startsWith('v ') || url.startsWith('o ')) ? 'obj' : 'glb';
+      loadExternal3DGeometry(url, format);
+      showToast('🔗 ৩ডি মডেল লোড হচ্ছে...');
+    }
+
+    function loadExternalPreset(type) {
+      state.activeExternalAsset.presetType = type;
+      state.activeExternalAsset.dataUrl = '';
+
+      externalMeshGroup.clear();
+      princessGroup.visible = false;
+      externalMeshGroup.visible = true;
+
+      const mainCol = document.getElementById('ext-col-main').value;
+      const secCol = document.getElementById('ext-col-sec').value;
+      const glowCol = document.getElementById('ext-col-glow').value;
+
+      extMatMain.color.set(mainCol);
+      extMatSec.color.set(secCol);
+      extMatGlow.color.set(glowCol);
+      extMatGlow.emissive.set(glowCol);
+
+      const pGroup = new THREE.Group();
+
+      if (type === 'mecha') {
+        document.getElementById('ext-category').value = 'character';
+        document.getElementById('ext-name-bn').value = 'সাইবার মেকা টাইটান';
+        document.getElementById('ext-name-en').value = 'Cyber Mecha Titan';
+        document.getElementById('ext-desc').value = 'এক্সটার্নাল হাই-টেক ৩ডি রোবোটিক স্যুট ও নিয়ন রানার';
+        document.getElementById('ext-price-inr').value = '49';
+        document.getElementById('ext-unlock-code').value = 'MECHA49';
+
+        // Procedural 3D Mecha Geometry
+        const chest = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.45), extMatMain);
+        chest.position.y = 1.1;
+        const core = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.48, 8), extMatGlow);
+        core.rotation.x = Math.PI / 2;
+        core.position.set(0, 1.15, 0.1);
+        const mHead = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.38, 0.38), extMatSec);
+        mHead.position.set(0, 1.68, 0);
+        const visor = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.1, 0.12), extMatGlow);
+        visor.position.set(0, 1.68, 0.16);
+
+        const sL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), extMatMain);
+        sL.position.set(0.5, 1.4, 0);
+        const sR = sL.clone(); sR.position.x = -0.5;
+
+        pGroup.add(chest, core, mHead, visor, sL, sR);
+      } else if (type === 'astro') {
+        document.getElementById('ext-category').value = 'character';
+        document.getElementById('ext-name-bn').value = 'গ্যালাক্সি অ্যাস্ট্রো সার্ফার';
+        document.getElementById('ext-name-en').value = 'Galaxy Astro Surfer';
+        document.getElementById('ext-desc').value = 'স্পেস স্যুট ও গোল্ডেন ভাইজার গ্যালাক্সি রানার';
+        document.getElementById('ext-price-inr').value = '59';
+        document.getElementById('ext-unlock-code').value = 'ASTRO59';
+
+        const suit = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.32, 0.85, 12), extMatMain);
+        suit.position.y = 1.05;
+        const helm = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 14), extMatSec);
+        helm.position.y = 1.65;
+        const goldVisor = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 10, 0, Math.PI, 0, Math.PI), extMatGlow);
+        goldVisor.position.set(0, 1.65, 0.15);
+        goldVisor.rotation.y = -Math.PI / 2;
+        const tank = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.6, 0.22), extMatSec);
+        tank.position.set(0, 1.1, -0.26);
+
+        pGroup.add(suit, helm, goldVisor, tank);
+      } else if (type === 'unicorn') {
+        document.getElementById('ext-category').value = 'pet';
+        document.getElementById('ext-name-bn').value = 'ম্যাজিক ইউনিকর্ন পেট';
+        document.getElementById('ext-name-en').value = 'Magic Starlight Unicorn';
+        document.getElementById('ext-desc').value = 'উড়ন্ত স্টারলাইট ইউনিকর্ন + ডাবল কয়েন সুবিধা!';
+        document.getElementById('ext-price-inr').value = '39';
+        document.getElementById('ext-unlock-code').value = 'UNICORN39';
+
+        const uBody = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.35, 0.65), extMatMain);
+        uBody.position.y = 0.38;
+        const uHead = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.28, 0.38), extMatMain);
+        uHead.position.set(0, 0.58, 0.35);
+        const horn = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.35, 6), extMatGlow);
+        horn.position.set(0, 0.85, 0.42);
+        horn.rotation.x = 0.3;
+        const mane = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.4), extMatSec);
+        mane.position.set(0, 0.62, 0.15);
+
+        pGroup.add(uBody, uHead, horn, mane);
+      } else if (type === 'ninja_cat') {
+        document.getElementById('ext-category').value = 'pet';
+        document.getElementById('ext-name-bn').value = 'নিনজা ক্যাট সঙ্গী';
+        document.getElementById('ext-name-en').value = 'Shinobi Ninja Cat';
+        document.getElementById('ext-desc').value = '+২৫% ম্যাগনেট রেঞ্জ ও অতিরিক্ত স্কোর বোনাস!';
+        document.getElementById('ext-price-inr').value = '29';
+        document.getElementById('ext-unlock-code').value = 'SHINOBI29';
+
+        const cBody = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.3, 0.45), extMatMain);
+        cBody.position.y = 0.32;
+        const cHead = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 10), extMatMain);
+        cHead.position.set(0, 0.52, 0.2);
+        const mask = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.12, 0.25), extMatSec);
+        mask.position.set(0, 0.54, 0.2);
+        const earL = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.18, 4), extMatGlow);
+        earL.position.set(0.14, 0.74, 0.18);
+        const earR = earL.clone(); earR.position.x = -0.14;
+
+        pGroup.add(cBody, cHead, mask, earL, earR);
+      } else if (type === 'plasma_board') {
+        document.getElementById('ext-category').value = 'skateboard';
+        document.getElementById('ext-name-bn').value = 'প্লাজমা ভর্টেক্স হোভারবোর্ড';
+        document.getElementById('ext-name-en').value = 'Plasma Vortex Hoverboard';
+        document.getElementById('ext-desc').value = 'প্রতি খেলায় +৫টি শিল্ড ও সুপার নিয়ন ট্রেইল!';
+        document.getElementById('ext-price-inr').value = '35';
+        document.getElementById('ext-unlock-code').value = 'PLASMA35';
+
+        const bDeck = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.08, 1.55), extMatMain);
+        bDeck.position.y = 0.15;
+        const bTrim = new THREE.Mesh(new THREE.TorusGeometry(0.68, 0.04, 6, 24), extMatGlow);
+        bTrim.rotation.x = Math.PI / 2;
+        bTrim.position.y = 0.15;
+        const thrustF = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.15, 8), extMatSec);
+        thrustF.position.set(0, 0.06, 0.5);
+        const thrustB = thrustF.clone(); thrustB.position.z = -0.5;
+
+        pGroup.add(bDeck, bTrim, thrustF, thrustB);
+      } else if (type === 'aurora_dress') {
+        document.getElementById('ext-category').value = 'dress';
+        document.getElementById('ext-name-bn').value = 'অরোরা রয়্যাল গাউন সেট';
+        document.getElementById('ext-name-en').value = 'Celestial Aurora Gown';
+        document.getElementById('ext-desc').value = 'চকচকে গোল্ডেন ফেব্রিক ও জাদুকরী রাজকীয় কেপ সেট';
+        document.getElementById('ext-price-inr').value = '25';
+        document.getElementById('ext-unlock-code').value = 'AURORA25';
+
+        const gown = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.65, 0.95, 16), extMatMain);
+        gown.position.y = 0.95;
+        const goldBand = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.12, 16), extMatGlow);
+        goldBand.position.y = 1.35;
+        const cr = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.12, 8), extMatGlow);
+        cr.position.y = 1.85;
+
+        pGroup.add(gown, goldBand, cr);
+      }
+
+      externalMeshGroup.add(pGroup);
+      showExternal3DInViewport();
+      showToast('✨ ৩ডি প্রিসেট লোড হয়েছে!');
+    }
+
+    function loadExternal3DGeometry(urlOrData, format) {
+      externalMeshGroup.clear();
+      princessGroup.visible = false;
+      externalMeshGroup.visible = true;
+
+      const onLoaded = (obj) => {
+        const box = new THREE.Box3().setFromObject(obj);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+
+        obj.position.sub(center);
+        const charHeight = Math.max(size.y, 0.1);
+        const normScale = 1.85 / charHeight;
+        obj.scale.set(normScale, normScale, normScale);
+        obj.position.y += 1.85 / 2;
+
+        obj.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            if (child.material) {
+              if (Array.isArray(child.material)) {
+                child.material.forEach((m) => { m.side = THREE.DoubleSide; });
+              } else {
+                child.material.side = THREE.DoubleSide;
+              }
+            }
+          }
+        });
+        externalMeshGroup.add(obj);
+        showExternal3DInViewport();
+      };
+
+      try {
+        if (format === 'obj' || urlOrData.includes('data:text') || urlOrData.startsWith('#') || urlOrData.startsWith('v ') || urlOrData.startsWith('o ')) {
+          if (THREE.OBJLoader) {
+            if (urlOrData.startsWith('data:')) {
+              const raw = atob(urlOrData.split(',')[1] || '');
+              const parsed = new THREE.OBJLoader().parse(raw);
+              onLoaded(parsed);
+            } else if (urlOrData.length > 100) {
+              const parsed = new THREE.OBJLoader().parse(urlOrData);
+              onLoaded(parsed);
+            } else {
+              new THREE.OBJLoader().load(urlOrData, onLoaded);
+            }
+          }
+        } else {
+          if (THREE.GLTFLoader) {
+            if (urlOrData.startsWith('data:')) {
+              const base64Str = urlOrData.split(',')[1] || '';
+              const byteCharacters = atob(base64Str);
+              const byteNumbers = new Array(byteCharacters.length);
+              for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+              }
+              const byteArray = new Uint8Array(byteNumbers);
+              new THREE.GLTFLoader().parse(byteArray.buffer, '', (gltf) => onLoaded(gltf.scene));
+            } else {
+              new THREE.GLTFLoader().load(urlOrData, (gltf) => {
+                onLoaded(gltf.scene);
+              });
+            }
+          }
+        }
+      } catch (e) {
+        showToast('⚠️ ৩ডি ফাইল পার্সিং ত্রুটি!');
+      }
+    }
+
+    function applyTextureToExternalMesh(texDataUrl) {
+      new THREE.TextureLoader().load(texDataUrl, (tex) => {
+        extMatMain.map = tex;
+        extMatMain.needsUpdate = true;
+        externalMeshGroup.traverse((child) => {
+          if (child.isMesh && child.material) {
+            child.material.map = tex;
+            child.material.needsUpdate = true;
+          }
+        });
+      });
+    }
+
+    function showExternal3DInViewport() {
+      princessGroup.visible = false;
+      externalMeshGroup.visible = true;
+      document.getElementById('preview-mode-tag').textContent = '📥 External 3D Asset Mode';
+      updateExternal3DVisuals();
+    }
+
+    function updateExternal3DVisuals() {
+      if (!externalMeshGroup) return;
+
+      const mainCol = document.getElementById('ext-col-main').value;
+      const secCol = document.getElementById('ext-col-sec').value;
+      const glowCol = document.getElementById('ext-col-glow').value;
+      const scale = parseFloat(document.getElementById('ext-scale').value) || 1.0;
+      const yOffset = parseFloat(document.getElementById('ext-yoff').value) || 0.0;
+      const rotY = (parseFloat(document.getElementById('ext-rot').value) || 0) * (Math.PI / 180);
+
+      state.activeExternalAsset.scale = scale;
+      state.activeExternalAsset.yOffset = yOffset;
+      state.activeExternalAsset.rotY = rotY;
+
+      extMatMain.color.set(mainCol);
+      extMatSec.color.set(secCol);
+      extMatGlow.color.set(glowCol);
+      extMatGlow.emissive.set(glowCol);
+
+      externalMeshGroup.position.set(0, yOffset, 0);
+      externalMeshGroup.scale.set(scale, scale, scale);
+      externalMeshGroup.rotation.y = rotY;
+
+      if (auraRingMesh) {
+        auraRingMesh.visible = document.getElementById('ext-chk-ring') ? document.getElementById('ext-chk-ring').checked : false;
+        auraRingMesh.material.color.set(glowCol);
+      }
+    }
+
+    function addExternalAssetToStore() {
+      const nameBn = document.getElementById('ext-name-bn').value.trim() || 'এক্সটার্নাল ৩ডি আইটেম';
+      const nameEn = document.getElementById('ext-name-en').value.trim() || nameBn;
+      const desc = document.getElementById('ext-desc').value.trim() || 'কাস্টম এক্সটার্নাল ৩ডি অ্যাসেট';
+      const cat = document.getElementById('ext-category').value || 'character';
+      const perk = document.getElementById('ext-perk').value;
+      const priceInr = parseInt(document.getElementById('ext-price-inr').value) || 0;
+      const priceCoins = parseInt(document.getElementById('ext-price-coins').value) || 3000;
+      const unlockCode = document.getElementById('ext-unlock-code').value.trim() || ('VIP' + Math.floor(100 + Math.random()*900));
+
+      const mainCol = document.getElementById('ext-col-main').value;
+      const secCol = document.getElementById('ext-col-sec').value;
+      const scale = parseFloat(document.getElementById('ext-scale').value) || 1.0;
+      const yOffset = parseFloat(document.getElementById('ext-yoff').value) || 0.0;
+      const rotY = (parseFloat(document.getElementById('ext-rot').value) || 0) * (Math.PI / 180);
+
+      const id = 'custom_ext_' + Date.now();
+
+      const newItem = {
+        id: id,
+        category: cat,
+        name: nameEn,
+        nameBn: nameBn,
+        description: desc,
+        descriptionBn: desc,
+        priceInr: priceInr,
+        priceCoins: priceCoins,
+        unlockCode: unlockCode,
+        isDefaultUnlocked: priceInr === 0,
+        previewColors: [mainCol, secCol],
+        isExternalAsset: true,
+        presetType: state.activeExternalAsset.presetType || '',
+        customModelUrl: state.activeExternalAsset.dataUrl || '',
+        customTextureUrl: state.activeExternalAsset.textureUrl || '',
+        modelScale: scale,
+        modelYOffset: yOffset,
+        modelRotationY: rotY,
+        tintColor: mainCol
+      };
+
+      if (cat === 'character') {
+        newItem.characterData = {
+          name: nameEn,
+          modelType: 'royal',
+          skinColor: '#fed7aa',
+          hairColor: secCol,
+          outfitColor: mainCol,
+          outfitSecondaryColor: secCol,
+          crownColor: '#fbbf24',
+          capeColor: mainCol,
+          hasCrown: document.getElementById('ext-chk-crown').checked,
+          hasCape: document.getElementById('ext-chk-cape').checked,
+          presetType: state.activeExternalAsset.presetType || '',
+          customModelUrl: state.activeExternalAsset.dataUrl || '',
+          customTextureUrl: state.activeExternalAsset.textureUrl || '',
+          modelScale: scale,
+          modelYOffset: yOffset,
+          modelRotationY: rotY,
+          tintColor: mainCol
+        };
+      } else if (cat === 'dress') {
+        newItem.dressData = {
+          outfitColor: mainCol,
+          outfitSecondaryColor: secCol,
+          capeColor: mainCol,
+          crownColor: '#fbbf24',
+          hasCrown: document.getElementById('ext-chk-crown').checked,
+          hasCape: document.getElementById('ext-chk-cape').checked,
+          customTextureUrl: state.activeExternalAsset.textureUrl || ''
+        };
+      } else if (cat === 'skateboard') {
+        newItem.skateboardData = {
+          id: id,
+          name: nameEn,
+          boardColor: mainCol,
+          trimColor: secCol,
+          thrusterColor: '#fde047',
+          bonusBoards: perk === 'shield_saver' ? 5 : 3,
+          presetType: state.activeExternalAsset.presetType || '',
+          customModelUrl: state.activeExternalAsset.dataUrl || '',
+          customTextureUrl: state.activeExternalAsset.textureUrl || '',
+          modelScale: scale,
+          modelYOffset: yOffset
+        };
+      } else if (cat === 'pet') {
+        newItem.petData = {
+          enabled: true,
+          type: 'panda',
+          name: nameEn,
+          color: mainCol,
+          secondaryColor: secCol,
+          perk: perk === 'none' ? 'score_boost' : perk,
+          perkDescription: desc,
+          presetType: state.activeExternalAsset.presetType || '',
+          customModelUrl: state.activeExternalAsset.dataUrl || '',
+          customTextureUrl: state.activeExternalAsset.textureUrl || '',
+          modelScale: scale,
+          modelYOffset: yOffset,
+          tintColor: mainCol
+        };
+      }
+
+      state.shopItems.unshift(newItem);
+      renderShopItems();
+      switchTab('upi', document.getElementById('tabbtn-upi'));
+      publishLiveToGameServer('🎉 এক্সটার্নাল ৩ডি অ্যাসেট "' + nameBn + '" গেমের স্টোরে যোগ ও লাইভ হয়েছে!');
+    }
+
+    // ================= PROCEDURAL ITEM HANDLERS =================
+    function addNewCharacterToStore() {
+      const nameBn = document.getElementById('new-char-name-bn').value.trim() || 'নতুন প্রিন্সেস';
+      const nameEn = document.getElementById('new-char-name-en').value.trim() || nameBn;
+      const desc = document.getElementById('new-char-desc').value.trim() || 'স্পেশাল ভিআইপি প্রিন্সেস';
+      const priceInr = parseInt(document.getElementById('new-char-price').value) || 0;
+      const priceCoins = parseInt(document.getElementById('new-char-coins').value) || 3000;
+      const unlockCode = document.getElementById('new-char-code').value.trim() || ('VIP' + Math.floor(100 + Math.random()*900));
+
+      const outfitColor = document.getElementById('col-outfit').value;
+      const secondaryColor = document.getElementById('col-secondary').value;
+      const hairColor = document.getElementById('col-hair').value;
+      const skinColor = document.getElementById('col-skin').value;
+      const capeColor = document.getElementById('col-cape').value;
+      const crownColor = document.getElementById('col-crown').value;
+      const hasCrown = document.getElementById('chk-crown').checked;
+      const hasCape = document.getElementById('chk-cape').checked;
+
+      const newItem = {
+        id: 'custom_char_' + Date.now(),
+        category: 'character',
+        name: nameEn,
+        nameBn: nameBn,
+        description: desc,
+        descriptionBn: desc,
+        priceInr: priceInr,
+        priceCoins: priceCoins,
+        unlockCode: unlockCode,
+        isDefaultUnlocked: priceInr === 0,
+        previewColors: [outfitColor, hairColor],
+        characterData: {
+          name: nameEn,
+          modelType: 'royal',
+          skinColor: skinColor,
+          hairColor: hairColor,
+          outfitColor: outfitColor,
+          outfitSecondaryColor: secondaryColor,
+          crownColor: crownColor,
+          capeColor: capeColor,
+          hasCrown: hasCrown,
+          hasCape: hasCape
+        }
+      };
+
+      state.shopItems.unshift(newItem);
+      renderShopItems();
+      switchTab('upi', document.getElementById('tabbtn-upi'));
+      publishLiveToGameServer('🎉 নতুন ক্যারেক্টার "' + nameBn + '" গেমের স্টোরে যোগ ও লাইভ হয়েছে!');
+    }
+
+    function syncDressTo3D() {
+      document.getElementById('col-outfit').value = document.getElementById('dress-col-main').value;
+      document.getElementById('col-secondary').value = document.getElementById('dress-col-sec').value;
+      document.getElementById('col-cape').value = document.getElementById('dress-col-cape').value;
+      document.getElementById('col-crown').value = document.getElementById('dress-col-crown').value;
+      update3DFromInputs();
+    }
+
+    function addNewDressToStore() {
+      const nameBn = document.getElementById('new-dress-name-bn').value.trim() || 'নতুন রয়্যাল ড্রেস';
+      const nameEn = document.getElementById('new-dress-name-en').value.trim() || nameBn;
+      const priceInr = parseInt(document.getElementById('new-dress-price').value) || 0;
+      const unlockCode = document.getElementById('new-dress-code').value.trim() || ('DRESS' + Math.floor(10 + Math.random()*90));
+      const outfitColor = document.getElementById('dress-col-main').value;
+      const secondaryColor = document.getElementById('dress-col-sec').value;
+      const capeColor = document.getElementById('dress-col-cape').value;
+      const crownColor = document.getElementById('dress-col-crown').value;
+
+      const newItem = {
+        id: 'custom_dress_' + Date.now(),
+        category: 'dress',
+        name: nameEn,
+        nameBn: nameBn,
+        description: 'Custom Royal Dress & Cape',
+        descriptionBn: 'কাস্টম ভিআইপি ড্রেস ও রাজকীয় কেপ সেট',
+        priceInr: priceInr,
+        priceCoins: 2000,
+        unlockCode: unlockCode,
+        isDefaultUnlocked: priceInr === 0,
+        previewColors: [outfitColor, secondaryColor],
+        dressData: {
+          outfitColor: outfitColor,
+          outfitSecondaryColor: secondaryColor,
+          capeColor: capeColor,
+          crownColor: crownColor,
+          hasCrown: true,
+          hasCape: true
+        }
+      };
+
+      state.shopItems.unshift(newItem);
+      renderShopItems();
+      switchTab('upi', document.getElementById('tabbtn-upi'));
+      publishLiveToGameServer('🎉 নতুন ড্রেস "' + nameBn + '" গেমের স্টোরে যোগ ও লাইভ হয়েছে!');
+    }
+
+    function addNewBoardToStore() {
+      const nameBn = document.getElementById('new-board-name-bn').value.trim() || 'নতুন স্কেটবোর্ড';
+      const nameEn = document.getElementById('new-board-name-en').value.trim() || nameBn;
+      const priceInr = parseInt(document.getElementById('new-board-price').value) || 0;
+      const unlockCode = document.getElementById('new-board-code').value.trim() || ('BOARD' + Math.floor(10 + Math.random()*90));
+      const bonusBoards = parseInt(document.getElementById('bonus-boards').value) || 3;
+      const boardColor = document.getElementById('col-board').value;
+      const trimColor = document.getElementById('col-trim').value;
+      const id = 'custom_board_' + Date.now();
+
+      const newItem = {
+        id: id,
+        category: 'skateboard',
+        name: nameEn,
+        nameBn: nameBn,
+        description: `+${bonusBoards} Extra Starting Boards every run!`,
+        descriptionBn: `প্রতি গেমে +${bonusBoards}টি অতিরিক্ত শিল্ড বোর্ড ফ্রি!`,
+        priceInr: priceInr,
+        priceCoins: 2500,
+        unlockCode: unlockCode,
+        isDefaultUnlocked: priceInr === 0,
+        previewColors: [boardColor, trimColor],
+        skateboardData: {
+          id: id,
+          name: nameEn,
+          boardColor: boardColor,
+          trimColor: trimColor,
+          thrusterColor: '#fde047',
+          bonusBoards: bonusBoards
+        }
+      };
+
+      state.shopItems.unshift(newItem);
+      renderShopItems();
+      switchTab('upi', document.getElementById('tabbtn-upi'));
+      publishLiveToGameServer('🎉 নতুন স্কেটবোর্ড "' + nameBn + '" গেমের স্টোরে যোগ ও লাইভ হয়েছে!');
+    }
+
+    function addNewPetToStore() {
+      const nameBn = document.getElementById('new-pet-name-bn').value.trim() || 'নতুন পোষা প্রাণী';
+      const nameEn = document.getElementById('new-pet-name-en').value.trim() || nameBn;
+      const pType = document.getElementById('pet-type').value;
+      const perk = document.getElementById('new-pet-perk').value;
+      const priceInr = parseInt(document.getElementById('new-pet-price').value) || 0;
+      const unlockCode = document.getElementById('new-pet-code').value.trim() || ('PET' + Math.floor(10 + Math.random()*90));
+      const color = document.getElementById('pet-col-main').value;
+      const secondaryColor = document.getElementById('pet-col-sec').value;
+
+      const perkNames = {
+        magnet_boost: '+25% Coin Magnet range',
+        score_boost: '+20% Score multiplier bonus',
+        coin_doubler: '30% chance of double coins',
+        shield_saver: '+1 Extra Hoverboard shield'
+      };
+
+      const newItem = {
+        id: 'custom_pet_' + Date.now(),
+        category: 'pet',
+        name: nameEn,
+        nameBn: nameBn,
+        description: perkNames[perk] || 'Special companion pet',
+        descriptionBn: perkNames[perk] || 'বিশেষ সঙ্গী পোষা প্রাণী',
+        priceInr: priceInr,
+        priceCoins: 2500,
+        unlockCode: unlockCode,
+        isDefaultUnlocked: priceInr === 0,
+        previewColors: [color, secondaryColor],
+        petData: {
+          enabled: true,
+          type: pType,
+          name: nameEn,
+          color: color,
+          secondaryColor: secondaryColor,
+          perk: perk,
+          perkDescription: perkNames[perk]
+        }
+      };
+
+      state.shopItems.unshift(newItem);
+      renderShopItems();
+      switchTab('upi', document.getElementById('tabbtn-upi'));
+      publishLiveToGameServer('🎉 নতুন পোষা প্রাণী "' + nameBn + '" গেমের স্টোরে যোগ ও লাইভ হয়েছে!');
+    }
+
+    function handleCustomQrUpload(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        state.upiConfig.qrCodeImageUrl = ev.target.result;
+        updateQrPreview();
+        showToast('📱 আপনার কাস্টম QR কোড ছবি যুক্ত হয়েছে!');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function updateQrPreview() {
+      const upi = document.getElementById('upi-id').value.trim() || 'your-upi-id@ybl';
+      const mn = document.getElementById('merchant-name').value.trim() || 'Princess Store';
+      if (state.upiConfig.qrCodeImageUrl) {
+        document.getElementById('live-qr-img').src = state.upiConfig.qrCodeImageUrl;
+      } else {
+        const upiUri = `upi://pay?pa=${encodeURIComponent(upi)}&pn=${encodeURIComponent(mn)}&am=29.00&cu=INR`;
+        document.getElementById('live-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=6&data=${encodeURIComponent(upiUri)}`;
+      }
+    }
+
+    function collectUpiInputs() {
+      state.upiConfig.upiId = document.getElementById('upi-id').value.trim() || 'your-upi-id@ybl';
+      state.upiConfig.merchantName = document.getElementById('merchant-name').value.trim() || 'Subway Princess Store';
+      state.upiConfig.whatsappNumber = document.getElementById('whatsapp-num').value.trim();
+      state.upiConfig.adminPin = document.getElementById('admin-pin').value.trim() || '1234';
+      state.upiConfig.verificationMode = document.getElementById('verify-mode').value;
+      state.environment.theme = document.getElementById('env-theme').value;
+    }
+
+    async function publishLiveToGameServer(customMsg) {
+      collectUpiInputs();
+
+      const payloadConfig = {
+        upiConfig: state.upiConfig,
+        environment: state.environment,
+        shopItems: state.shopItems,
+        levelUpRewards: state.levelUpRewards || [],
+        roadsideShopCharacters: state.roadsideShopCharacters || []
+      };
+
+      // 1. Direct Firestore update for instant cross-device and multi-player synchronization
+      if (firestoreDb) {
+        try {
+          // Write individual custom shop items to shop_items collection
+          if (Array.isArray(state.shopItems)) {
+            state.shopItems.forEach(item => {
+              if (item && item.id && (item.isExternalAsset || item.id.startsWith('custom_') || item.customModelUrl)) {
+                try {
+                  firestoreDb.collection('shop_items').doc(item.id).set(item, { merge: true }).catch(() => {});
+                } catch (e) {}
+              }
+            });
+          }
+
+          // Sanitize main_config payload if document size exceeds 750KB
+          let mainDocPayload = payloadConfig;
+          const jsonLen = JSON.stringify(payloadConfig).length;
+          if (jsonLen > 750000) {
+            const sanitizedItems = state.shopItems.map(item => {
+              if (JSON.stringify(item).length > 150000) {
+                const sItem = { ...item };
+                if (sItem.customModelUrl && typeof sItem.customModelUrl === 'string' && sItem.customModelUrl.length > 500) {
+                  sItem.customModelUrl = 'ref:shop_items/' + item.id;
+                }
+                if (sItem.characterData && typeof sItem.characterData === 'object') {
+                  const cd = { ...sItem.characterData };
+                  if (cd.customModelUrl && typeof cd.customModelUrl === 'string' && cd.customModelUrl.length > 500) {
+                    cd.customModelUrl = 'ref:shop_items/' + item.id;
+                  }
+                  sItem.characterData = cd;
+                }
+                return sItem;
+              }
+              return item;
+            });
+            mainDocPayload = {
+              upiConfig: state.upiConfig,
+              environment: state.environment,
+              shopItems: sanitizedItems,
+              levelUpRewards: state.levelUpRewards || [],
+              roadsideShopCharacters: state.roadsideShopCharacters || []
+            };
+          }
+
+          firestoreDb.collection('game_configs').doc('main_config').set(mainDocPayload, { merge: true }).catch(err => {
+            console.warn('Firestore set error:', err);
+          });
+        } catch (e) {
+          console.warn('Firestore error:', e);
+        }
+      }
+
+      try {
+        const existingRaw = localStorage.getItem(STORAGE_KEY);
+        const existing = existingRaw ? JSON.parse(existingRaw) : {};
+        const mergedLocal = { ...existing, ...payloadConfig };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedLocal));
+        if ('BroadcastChannel' in window) {
+          const ch = new BroadcastChannel('subway_princess_sync');
+          ch.postMessage({ type: 'CONFIG_UPDATED', config: mergedLocal });
+          ch.close();
+        }
+      } catch (e) {}
+
+      const serverBase = getServerBaseUrl();
+      const apis = [CLOUD_SYNC_API, serverBase + '/api/config'];
+      let synced = false;
+      for (const apiUrl of apis) {
+        try {
+          const res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ config: payloadConfig })
+          });
+          if (res.ok) synced = true;
+        } catch (e) {}
+      }
+
+      if (synced) {
+        showToast(customMsg || '🚀 সরাসরি আপনার লাইভ গেমে পাবলিশ হয়ে গেছে!');
+      } else {
+        showToast(customMsg || '✅ সংরক্ষিত হয়েছে!');
+      }
+    }
+
+    function buildSyncQueryParams() {
+      collectUpiInputs();
+      const params = new URLSearchParams();
+      if (state.upiConfig.upiId) params.set('upi', state.upiConfig.upiId);
+      if (state.upiConfig.merchantName) params.set('mn', state.upiConfig.merchantName);
+      if (state.upiConfig.whatsappNumber) params.set('wa', state.upiConfig.whatsappNumber);
+      if (state.upiConfig.verificationMode) params.set('vmode', state.upiConfig.verificationMode);
+      if (state.upiConfig.adminPin) params.set('pin', state.upiConfig.adminPin);
+      if (state.environment.theme) params.set('theme', state.environment.theme);
+
+      const priceStr = state.shopItems.map(i => `${i.id}:${i.priceInr}:${i.unlockCode}`).join(',');
+      params.set('prices', priceStr);
+
+      const customAdded = state.shopItems.filter(i => String(i.id).startsWith('custom_'));
+      if (customAdded.length > 0) {
+        try {
+          const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(customAdded))));
+          params.set('customItems', b64);
+        } catch (e) {}
+      }
+      return params.toString();
+    }
+
+    async function openLiveGame() {
+      await publishLiveToGameServer();
+      const serverBase = getServerBaseUrl();
+      const qs = buildSyncQueryParams();
+      window.location.href = serverBase + '/?' + qs;
+    }
+
+    function exportConfigJson() {
+      collectUpiInputs();
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
+        upiConfig: state.upiConfig,
+        environment: state.environment,
+        shopItems: state.shopItems
+      }, null, 2));
+      const dlAnchorElem = document.createElement('a');
+      dlAnchorElem.setAttribute("href", dataStr);
+      dlAnchorElem.setAttribute("download", "subway_princess_store_backup.json");
+      dlAnchorElem.click();
+      showToast('📥 স্টোর কনফিগ JSON ডাউনলোড সম্পন্ন হয়েছে!');
+    }
+
+    function importConfigJson(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed.upiConfig) state.upiConfig = { ...state.upiConfig, ...parsed.upiConfig };
+          if (parsed.environment) state.environment = { ...state.environment, ...parsed.environment };
+          if (Array.isArray(parsed.shopItems)) state.shopItems = parsed.shopItems;
+          initAdminUI();
+          publishLiveToGameServer('📤 স্টোর কনফিগ ব্যাকআপ সফলভাবে রিস্টোর ও লাইভ হয়েছে!');
+        } catch (err) {
+          showToast('⚠️ ভুল JSON ফাইল ফরম্যাট!');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 3200);
+    }
+  </script>
+</body>
+</html>
