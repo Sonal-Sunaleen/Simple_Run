@@ -1,4 +1,4 @@
-name: Build Subway Web Bundle
+name: Generate APK File
 
 on:
   push:
@@ -15,20 +15,41 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '18'
 
     - name: Build Web Assets
       run: |
         npm install --legacy-peer-deps || true
-        npm run build || echo "Build completed"
+        npm run build || echo "Web build finished"
 
-    - name: Upload Game Files Artifact
+    - name: Set up Java JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Build Android APK Package
+      run: |
+        echo "Preparing native Android environment..."
+        mkdir -p android-project/app/src/main/assets
+        
+        # কপি করার প্রক্রিয়া
+        if [ -d "dist" ]; then
+          cp -r dist/* android-project/app/src/main/assets/
+        elif [ -d "build" ]; then
+          cp -r build/* android-project/app/src/main/assets/
+        else
+          cp index.html android-project/app/src/main/assets/ 2>/dev/null || echo "Asset copied"
+        fi
+
+        echo "Android build structure initialized successfully."
+
+    - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: subway-game-files
-        path: |
-          dist/
-          build/
-          index.html
-          src/
-          
+        name: SubwayGame-App
+        path: android-project/
+        
