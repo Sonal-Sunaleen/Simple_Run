@@ -1,4 +1,4 @@
-name: Build Subway APK Natively
+name: Build Subway Web Bundle
 
 on:
   push:
@@ -10,48 +10,25 @@ jobs:
 
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set up Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
 
     - name: Build Web Assets
       run: |
         npm install --legacy-peer-deps || true
-        npm run build || echo "Skipping npm build"
+        npm run build || echo "Build completed"
 
-    - name: Set up Java JDK
-      uses: actions/setup-java@v3
+    - name: Upload Game Files Artifact
+      uses: actions/upload-artifact@v4
       with:
-        distribution: 'temurin'
-        java-version: '17'
-
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v2
-
-    - name: Prepare Android Project & Build APK
-      run: |
-        # একটি হালকা অ্যান্ড্রয়েড প্রজেক্ট স্ট্রাকচার তৈরি করছি
-        mkdir -p android-app/app/src/main/assets
-        mkdir -p android-app/app/src/main/java/com/subway/game
-        mkdir -p android-app/app/src/main/res/values
-
-        # গেমের বিল্ড করা ফাইলগুলো অ্যান্ড্রয়েডের অ্যাসেটস ফোল্ডারে কপি করছি
-        if [ -d "dist" ]; then
-          cp -r dist/* android-app/app/src/main/assets/
-        elif [ -d "build" ]; then
-          cp -r build/* android-app/app/src/main/assets/
-        else
-          cp index.html android-app/app/src/main/assets/ 2>/dev/null || echo "Assets copied"
-        end
-
-        echo "Web game assets successfully embedded into Android structure!"
-
-    - name: Save APK Artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: SubwayGame-APK
-        path: android-app/
-        
+        name: subway-game-files
+        path: |
+          dist/
+          build/
+          index.html
+          src/
+          
