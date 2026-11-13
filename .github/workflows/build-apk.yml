@@ -19,12 +19,12 @@ jobs:
 
     - name: Build Web Game
       run: |
-        npm install --legacy-peer-deps || true
+        npm install --force || true
         npm run build || echo "Web build done"
 
     - name: Install Capacitor Packages
       run: |
-        npm install @capacitor/core @capacitor/cli @capacitor/android --save --legacy-peer-deps
+        npm install @capacitor/core @capacitor/cli @capacitor/android --save --force
 
     - name: Setup Capacitor Android Project
       run: |
@@ -41,8 +41,9 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Build Android APK with Gradle
+    - name: Accept Android Licenses & Build APK
       run: |
+        yes | sdkmanager --licenses || true
         cd android
         chmod +x gradlew
         ./gradlew assembleDebug
