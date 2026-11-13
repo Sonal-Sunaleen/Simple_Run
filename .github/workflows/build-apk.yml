@@ -69,11 +69,12 @@ jobs:
     - name: Build Android APK with Gradle
       run: |
         cd android
-        # settings.gradle এ capacitor-android পাথ নিশ্চিত করা
-        if ! grep -q "capacitor-android" settings.gradle; then
-          echo "include ':capacitor-android'" >> settings.gradle
-          echo "project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/android/capacitor')" >> settings.gradle
-        fi
+        # capacitor.settings.gradle ফাইলটি জোরপূর্বক তৈরি করা যাতে মিসিং না দেখায়
+        cat << 'EOF' > capacitor.settings.gradle
+        include(':capacitor-android')
+        project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/android/capacitor')
+        EOF
+        
         chmod +x gradlew
         ./gradlew assembleDebug
 
