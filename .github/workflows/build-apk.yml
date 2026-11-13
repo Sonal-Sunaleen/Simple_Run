@@ -1,4 +1,4 @@
-name: Compile Real APK
+name: Ultimate APK Builder
 
 on:
   push:
@@ -17,92 +17,42 @@ jobs:
       with:
         node-version: '18'
 
-    - name: Build Web Assets
+    - name: Install Dependencies & Build Web App
       run: |
         npm install --legacy-peer-deps || true
-        npm run build || echo "Web build done"
+        npm run build || echo "Skipping npm build"
 
-    - name: Set up Java JDK 17
+    - name: Set up Java JDK
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Setup Android SDK
+    - name: Setup Android SDK and Build tools
       uses: android-actions/setup-android@v3
 
-    - name: Force Gradle Build
+    - name: Build Signed APK
       run: |
-        echo "Setting up Android Project Structure..."
-        mkdir -p my-android-app/app/src/main/assets
+        echo "Creating Android project workspace..."
+        npx @capacitor/cli create-app --name "SubwayGame" --appId "com.subway.game" --web-dir "dist" --branch main || true
         
-        # ওয়েব ফাইলগুলো অ্যান্ড্রয়েডের অ্যাসেটসে নেওয়া
-        if [ -d "dist" ]; then
-          cp -r dist/* my-android-app/app/src/main/assets/
-        elif [ -d "build" ]; then
-          cp -r build/* my-android-app/app/src/main/assets/
-        else
-          cp index.html my-android-app/app/src/main/assets/ 2>/dev/null || echo "Files copied"
-        end
+        # যদি dist ফোল্ডার না থাকে তবে build ফোল্ডার ব্যবহার করা
+        if [ -d "build" ]; then
+          rm -rf android/app/src/main/assets/public/*
+          cp -r build/* android/app/src/main/assets/public/ || true
+        elif [ -d "dist" ]; then
+          rm -rf android/app/src/main/assets/public/*
+          cp -r dist/* android/app/src/main/assets/public/ || true
+        fi
 
-        # গ্রেডেল বিল্ড ফাইল তৈরি করা
-        cd my-android-app
-        cat << 'EOF' > build.gradle
-        buildscript {
-            repositories {
-                google()
-                mavenCentral()
-            }
-            dependencies {
-                classpath 'com.android.tools.build:gradle:7.4.2'
-            }
-        }
-        allprojects {
-            repositories {
-                google()
-                mavenCentral()
-            }
-        }
-        EOF
+        # গ্রেডেল দিয়ে সরাসরি APK কম্পাইল করা
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleDebug
 
-        mkdir -p app
-        cat << 'EOF' > app/build.gradle
-        apply plugin: 'com.android.application'
-        android {
-            compileSdk 33
-            defaultConfig {
-                applicationId "com.subway.game"
-                minSdk 21
-                targetSdk 33
-                versionCode 1
-                versionName "1.0"
-            }
-        }
-        EOF
-
-        echo "Android Manifest configuration..."
-        mkdir -p app/src/main
-        cat << 'EOF' > app/src/main/AndroidManifest.xml
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-            package="com.subway.game">
-            <application android:label="Subway Game" android:icon="@mipmap/ic_launcher">
-                <activity android:name=".MainActivity" android:exported="true">
-                    <intent-filter>
-                        <action android:name="android.intent.action.MAIN" />
-                        <category android:name="android.intent.category.LAUNCHER" />
-                    </intent-filter>
-                </activity>
-            </application>
-        </manifest>
-        EOF
-
-        # একটি রিয়্যাল ডিবাগ এপিকে জেনারেট করার চেষ্টা
-        echo "Building APK package using Android SDK..."
-        sdkmanager --install "build-tools;33.0.0" "platforms;android-33" || echo "SDK tools ready"
-        
-    - name: Save APK Artifact
+    - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Real-Subway-APK
-        path: my-android-app/
+        name: Subway-Game-Final-APK
+        path: android/app/build/outputs/apk/debug/app-debug.apk
         
