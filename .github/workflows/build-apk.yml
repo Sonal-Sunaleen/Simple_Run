@@ -69,8 +69,11 @@ jobs:
     - name: Build Android APK with Gradle
       run: |
         cd android
-        # যদি capacitor.settings.gradle না থাকে, তবে ফাঁকা ফাইল তৈরি করে ব্যাকআপ রাখা
-        touch capacitor.settings.gradle
+        # settings.gradle এ capacitor-android পাথ নিশ্চিত করা
+        if ! grep -q "capacitor-android" settings.gradle; then
+          echo "include ':capacitor-android'" >> settings.gradle
+          echo "project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/android/capacitor')" >> settings.gradle
+        fi
         chmod +x gradlew
         ./gradlew assembleDebug
 
