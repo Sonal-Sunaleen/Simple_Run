@@ -24,7 +24,7 @@ jobs:
 
     - name: Install Capacitor Packages
       run: |
-        npm install @capacitor/core @capacitor/cli @capacitor/android --save
+        npm install @capacitor/core @capacitor/cli @capacitor/android --save --legacy-peer-deps
 
     - name: Setup Capacitor Android Project
       run: |
