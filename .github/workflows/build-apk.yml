@@ -88,8 +88,11 @@ jobs:
         }
         EOF
 
+        # করাপ্ট গ্রেডেল ক্যাশ সম্পূর্ণ মুছে ফেলা যাতে জার ফাইল নিয়ে কোনো ঝামেলা না হয়
+        rm -rf ~/.gradle/caches/ || true
+
         chmod +x gradlew
-        ./gradlew clean assembleDebug
+        ./gradlew assembleDebug --no-daemon --refresh-dependencies
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
