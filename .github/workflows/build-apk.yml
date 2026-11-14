@@ -39,21 +39,21 @@ jobs:
         npx cap add android || true
         npx cap sync android
 
-    - name: Set up Java JDK 17
+    - name: Set up Java JDK 21
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '17'
+        java-version: '21'
 
     - name: Build Android APK with Gradle
       run: |
         cd android
         
-        # পুরোনো কোনো বিল্ড ফাইল বা ক্যাশ থাকলে তা পুরোপুরি পরিষ্কার করা
+        # পুরোনো ক্যাশ পরিষ্কার করা
         ./gradlew clean --no-daemon
 
         chmod +x gradlew
-        # ক্যাশ রিফ্রেশ করে সরাসরি এপিকে বিল্ড করা (ক্যাপাসিটর নিজে সেটিংস হ্যান্ডেল করবে)
+        # গ্রেডল দিয়ে এপিকে বিল্ড করা
         ./gradlew assembleDebug --no-daemon --refresh-dependencies
 
     - name: Upload APK Artifact
