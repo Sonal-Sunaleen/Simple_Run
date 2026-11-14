@@ -19,12 +19,12 @@ jobs:
 
     - name: Build Web Game
       run: |
-        npm install --force || true
-        npm run build || echo "Web build done"
+        npm install
+        npm run build --if-present
 
     - name: Install Capacitor Packages
       run: |
-        npm install @capacitor/core @capacitor/cli @capacitor/android --save --force
+        npm install @capacitor/core @capacitor/cli @capacitor/android --save
 
     - name: Setup Capacitor Config & Sync
       run: |
@@ -36,8 +36,8 @@ jobs:
         }
         EOF
         
-        npx cap add android || true
-        npx cap sync android || true
+        npx cap add android
+        npx cap sync android
 
     - name: Set up Java JDK 17
       uses: actions/setup-java@v4
@@ -70,7 +70,10 @@ jobs:
       run: |
         cd android
         
-        # settings.gradle এ অ্যাপ এবং ক্যাপাসিটরের সমস্ত প্রয়োজনীয় মডিউল পাথ পারফেক্টলি সেট করা
+        # ক্যাশ বা লক সংক্রান্ত সমস্যা এড়াতে গ্রেডল ক্লিন করা
+        ./gradlew clean --no-daemon
+
+        # settings.gradle সেটআপ
         cat << 'EOF' > settings.gradle
         include ':app'
         include ':capacitor-android'
@@ -79,7 +82,7 @@ jobs:
         project(':capacitor-cordova-android-plugins').projectDir = new File('../node_modules/@capacitor/android/cordova')
         EOF
 
-        # app ফোল্ডারে capacitor.build.gradle ফাইলটি সঠিক কন্টেন্টসহ নিশ্চিত করা
+        # app/capacitor.build.gradle সেটআপ
         mkdir -p app
         cat << 'EOF' > app/capacitor.build.gradle
         android {
@@ -89,11 +92,11 @@ jobs:
         EOF
 
         chmod +x gradlew
-        ./gradlew assembleDebug --no-daemon
+        # --refresh-dependencies দিয়ে জার ফাইল করাপশন এড়ানো হয়েছে
+        ./gradlew assembleDebug --no-daemon --refresh-dependencies
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: Subway-Game-Real-APK
         path: android/app/build/outputs/apk/debug/app-debug.apk
-        
