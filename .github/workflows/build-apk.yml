@@ -79,6 +79,15 @@ jobs:
         project(':capacitor-cordova-android-plugins').projectDir = new File('../node_modules/@capacitor/android/cordova')
         EOF
 
+        # app ফোল্ডারে capacitor.build.gradle ফাইলটি সঠিক কন্টেন্টসহ আগে থেকেই তৈরি করে রাখা
+        mkdir -p app
+        cat << 'EOF' > app/capacitor.build.gradle
+        android {
+            defaultConfig {
+            }
+        }
+        EOF
+
         chmod +x gradlew
         ./gradlew clean assembleDebug
 
