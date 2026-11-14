@@ -45,6 +45,21 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
 
+    - name: Fix Kotlin Version Conflict
+      run: |
+        cd android
+        # build.gradle ফাইলে কোটলিন লাইব্রেরি ডুপ্লিকেট রোধ করার কোড যুক্ত করা
+        cat << 'EOF' >> app/build.gradle
+
+        configurations.all {
+            resolutionStrategy.eachDependency { details ->
+                if (details.requested.group == 'org.jetbrains.kotlin') {
+                    details.useVersion '1.8.22'
+                }
+            }
+        }
+        EOF
+
     - name: Build Android APK with Gradle
       run: |
         cd android
