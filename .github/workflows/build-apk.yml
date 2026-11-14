@@ -26,7 +26,7 @@ jobs:
       run: |
         npm install @capacitor/core @capacitor/cli @capacitor/android --save --force
 
-    - name: Setup Capacitor Config & Pre-configure Android
+    - name: Setup Capacitor Config & Sync
       run: |
         cat << 'EOF' > capacitor.config.json
         {
@@ -38,15 +38,6 @@ jobs:
         
         npx cap add android || true
         npx cap sync android || true
-
-        # গ্রেডেল খোঁজার আগেই settings.gradle ফাইলে capacitor-android আগে থেকেই পাকাপোক্ত করে লিখে রাখা
-        cd android
-        cat << 'EOF' > settings.gradle
-        include ':app'
-        include ':capacitor-android'
-        project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/android/capacitor')
-        EOF
-        cd ..
 
     - name: Set up Java JDK 17
       uses: actions/setup-java@v4
@@ -78,6 +69,16 @@ jobs:
     - name: Build Android APK with Gradle
       run: |
         cd android
+        
+        # settings.gradle এ প্রয়োজনীয় সমস্ত প্লাগইন পাথ আগে থেকেই সম্পূর্ণ যুক্ত করে রাখা
+        cat << 'EOF' > settings.gradle
+        include ':app'
+        include ':capacitor-android'
+        include ':capacitor-cordova-android-plugins'
+        project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/android/capacitor')
+        project(':capacitor-cordova-android-plugins').projectDir = new File('../node_modules/@capacitor/android/cordova')
+        EOF
+
         chmod +x gradlew
         ./gradlew assembleDebug
 
