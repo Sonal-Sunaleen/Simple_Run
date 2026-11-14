@@ -19,12 +19,12 @@ jobs:
 
     - name: Build Web Game
       run: |
-        npm install
+        npm install --legacy-peer-deps
         npm run build --if-present
 
     - name: Install Capacitor Packages
       run: |
-        npm install @capacitor/core @capacitor/cli @capacitor/android --save
+        npm install @capacitor/core @capacitor/cli @capacitor/android --save --legacy-peer-deps
 
     - name: Setup Capacitor Config & Sync
       run: |
@@ -36,7 +36,7 @@ jobs:
         }
         EOF
         
-        npx cap add android
+        npx cap add android || true
         npx cap sync android
 
     - name: Set up Java JDK 17
@@ -70,7 +70,7 @@ jobs:
       run: |
         cd android
         
-        # ক্যাশ বা লক সংক্রান্ত সমস্যা এড়াতে গ্রেডল ক্লিন করা
+        # ক্যাশ পরিষ্কার করা
         ./gradlew clean --no-daemon
 
         # settings.gradle সেটআপ
@@ -92,7 +92,6 @@ jobs:
         EOF
 
         chmod +x gradlew
-        # --refresh-dependencies দিয়ে জার ফাইল করাপশন এড়ানো হয়েছে
         ./gradlew assembleDebug --no-daemon --refresh-dependencies
 
     - name: Upload APK Artifact
