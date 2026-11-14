@@ -70,7 +70,7 @@ jobs:
       run: |
         cd android
         
-        # settings.gradle এ প্রয়োজনীয় সমস্ত প্লাগইন পাথ আগে থেকেই সম্পূর্ণ যুক্ত করে রাখা
+        # settings.gradle ফাইলটি পাকাপোক্তভাবে তৈরি করা
         cat << 'EOF' > settings.gradle
         include ':app'
         include ':capacitor-android'
@@ -78,6 +78,10 @@ jobs:
         project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/android/capacitor')
         project(':capacitor-cordova-android-plugins').projectDir = new File('../node_modules/@capacitor/android/cordova')
         EOF
+
+        # app ফোল্ডারে capacitor.build.gradle ফাইলটি জোরপূর্বক তৈরি করা
+        mkdir -p app
+        touch app/capacitor.build.gradle
 
         chmod +x gradlew
         ./gradlew assembleDebug
