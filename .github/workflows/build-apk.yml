@@ -52,13 +52,11 @@ jobs:
         # গ্রেডল ক্লিন ও ক্যাশ রিফ্রেশ
         ./gradlew clean --no-daemon
 
-        # settings.gradle সেটআপ
+        # settings.gradle শুধু প্রয়োজনীয় মডিউলগুলো নিয়ে পরিচ্ছন্ন করা হলো
         cat << 'EOF' > settings.gradle
         include ':app'
         include ':capacitor-android'
-        include ':capacitor-cordova-android-plugins'
         project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/android/capacitor')
-        project(':capacitor-cordova-android-plugins').projectDir = new File('../node_modules/@capacitor/android/cordova')
         EOF
 
         # app/capacitor.build.gradle সেটআপ
