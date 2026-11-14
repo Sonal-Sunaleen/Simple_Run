@@ -70,16 +70,14 @@ jobs:
       run: |
         cd android
         
-        # settings.gradle ফাইলটি পাকাপোক্তভাবে তৈরি করা
+        # শুধুমাত্র প্রয়োজনীয় app ও capacitor-android রেখে settings.gradle পরিষ্কার করা
         cat << 'EOF' > settings.gradle
         include ':app'
         include ':capacitor-android'
-        include ':capacitor-cordova-android-plugins'
         project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/android/capacitor')
-        project(':capacitor-cordova-android-plugins').projectDir = new File('../node_modules/@capacitor/android/cordova')
         EOF
 
-        # app ফোল্ডারে capacitor.build.gradle ফাইলটি সঠিক কন্টেন্টসহ আগে থেকেই তৈরি করে রাখা
+        # app ফোল্ডারে capacitor.build.gradle ফাইলটি সঠিক কন্টেন্টসহ তৈরি রাখা
         mkdir -p app
         cat << 'EOF' > app/capacitor.build.gradle
         android {
@@ -88,11 +86,12 @@ jobs:
         }
         EOF
 
-        # করাপ্ট গ্রেডেল ক্যাশ সম্পূর্ণ মুছে ফেলা যাতে জার ফাইল নিয়ে কোনো ঝামেলা না হয়
+        # পুরনো ক্যাশ পরিষ্কার করা
         rm -rf ~/.gradle/caches/ || true
 
         chmod +x gradlew
-        ./gradlew assembleDebug --no-daemon --refresh-dependencies
+        # --max-workers=1 দিয়ে সিরিয়াল বিল্ড নিশ্চিত করা যাতে জার ফাইল তৈরির সময় ক্যাশ লক না হয়
+        ./gradlew assembleDebug --no-daemon --max-workers=1
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
