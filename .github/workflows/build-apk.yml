@@ -69,11 +69,10 @@ jobs:
     - name: Build Android APK with Gradle
       run: |
         cd android
-        # capacitor.settings.gradle ফাইলটি জোরপূর্বক তৈরি করা যাতে মিসিং না দেখায়
-        cat << 'EOF' > capacitor.settings.gradle
-        include(':capacitor-android')
-        project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/android/capacitor')
-        EOF
+        
+        # অপশনাল ক্যাপাসিটর গ্রেডেল স্ক্রিপ্টগুলোর রেফারেন্স সরিয়ে ফেলা যাতে মিসিং এরর না আসে
+        sed -i '/capacitor.settings.gradle/d' settings.gradle || true
+        sed -i '/capacitor.build.gradle/d' app/build.gradle || true
         
         chmod +x gradlew
         ./gradlew assembleDebug
