@@ -49,26 +49,11 @@ jobs:
       run: |
         cd android
         
-        # গ্রেডল ক্লিন ও ক্যাশ রিফ্রেশ
+        # পুরোনো কোনো বিল্ড ফাইল বা ক্যাশ থাকলে তা পুরোপুরি পরিষ্কার করা
         ./gradlew clean --no-daemon
 
-        # settings.gradle শুধু প্রয়োজনীয় মডিউলগুলো নিয়ে পরিচ্ছন্ন করা হলো
-        cat << 'EOF' > settings.gradle
-        include ':app'
-        include ':capacitor-android'
-        project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/android/capacitor')
-        EOF
-
-        # app/capacitor.build.gradle সেটআপ
-        mkdir -p app
-        cat << 'EOF' > app/capacitor.build.gradle
-        android {
-            defaultConfig {
-            }
-        }
-        EOF
-
         chmod +x gradlew
+        # ক্যাশ রিফ্রেশ করে সরাসরি এপিকে বিল্ড করা (ক্যাপাসিটর নিজে সেটিংস হ্যান্ডেল করবে)
         ./gradlew assembleDebug --no-daemon --refresh-dependencies
 
     - name: Upload APK Artifact
