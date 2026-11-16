@@ -95,7 +95,8 @@
         <p><span class="status-dot"></span>External 3D Asset Studio, Live Preview & UPI Store</p>
       </div>
     </div>
-    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+      <button id="btn-toggle-lang" onclick="toggleGameLanguage()" class="btn btn-cyan" style="font-weight: 900; font-size: 12px; padding: 10px 14px;">🌐 গেমের ভাষা: বাংলা (English করুন)</button>
       <button onclick="publishLiveToGameServer()" class="btn btn-emerald">🚀 লাইভ গেমে পাবলিশ করুন (Publish)</button>
       <button onclick="openLiveGame()" class="btn btn-amber">▶️ গেম ওপেন করুন</button>
     </div>
@@ -952,6 +953,9 @@
         adminPin: '1234',
         verificationMode: 'utr_or_code'
       },
+      gameplay: {
+        language: 'bn'
+      },
       environment: {
         theme: 'neon_subway',
         selectedScenerySet: 'set_neon_skyline',
@@ -1045,6 +1049,7 @@
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.upiConfig) state.upiConfig = { ...state.upiConfig, ...parsed.upiConfig };
+        if (parsed.gameplay) state.gameplay = { ...state.gameplay, ...parsed.gameplay };
         if (parsed.environment) {
           state.environment.theme = parsed.environment.theme || state.environment.theme;
           state.environment.selectedScenerySet = parsed.environment.selectedScenerySet || state.environment.selectedScenerySet;
@@ -1092,6 +1097,10 @@
                 const data = docSnap.data();
                 if (data) {
                   if (data.upiConfig) state.upiConfig = { ...state.upiConfig, ...data.upiConfig };
+                  if (data.gameplay) {
+                    state.gameplay = { ...state.gameplay, ...data.gameplay };
+                    updateLanguageButtonUI();
+                  }
                   if (Array.isArray(data.shopItems) && data.shopItems.length > 0) {
                     state.shopItems = data.shopItems;
                   }
@@ -1160,6 +1169,34 @@
       renderLevelRewards();
       renderRoadsideKeepers();
       updateQrPreview();
+      updateLanguageButtonUI();
+    }
+
+    function updateLanguageButtonUI() {
+      const isEn = state.gameplay && state.gameplay.language === 'en';
+      const btn = document.getElementById('btn-toggle-lang');
+      if (btn) {
+        if (isEn) {
+          btn.innerHTML = '🌐 Language: English (বাংলা করুন)';
+          btn.className = 'btn btn-amber';
+          btn.title = 'ক্লিক করলে গেমের সমস্ত লেখা বাংলায় পরিবর্তিত হবে';
+        } else {
+          btn.innerHTML = '🌐 গেমের ভাষা: বাংলা (English করুন)';
+          btn.className = 'btn btn-cyan';
+          btn.title = 'Click to switch all in-game text to English';
+        }
+      }
+    }
+
+    async function toggleGameLanguage() {
+      const isEn = state.gameplay && state.gameplay.language === 'en';
+      if (!state.gameplay) state.gameplay = {};
+      state.gameplay.language = isEn ? 'bn' : 'en';
+      updateLanguageButtonUI();
+      const msg = state.gameplay.language === 'en'
+        ? '🌐 গেমের সমস্ত টেক্সট সফলভাবে ইংরেজিতে (English) সেট ও লাইভ করা হয়েছে!'
+        : '🌐 গেমের সমস্ত টেক্সট সফলভাবে বাংলায় (Bengali) সেট ও লাইভ করা হয়েছে!';
+      await publishLiveToGameServer(msg);
     }
 
     function handleLevelRewardTypeChange() {
@@ -2330,6 +2367,7 @@
       const payloadConfig = {
         upiConfig: state.upiConfig,
         environment: state.environment,
+        gameplay: state.gameplay || { language: 'bn' },
         shopItems: state.shopItems,
         levelUpRewards: state.levelUpRewards || [],
         roadsideShopCharacters: state.roadsideShopCharacters || []
@@ -2373,6 +2411,7 @@
             mainDocPayload = {
               upiConfig: state.upiConfig,
               environment: state.environment,
+              gameplay: state.gameplay || { language: 'bn' },
               shopItems: sanitizedItems,
               levelUpRewards: state.levelUpRewards || [],
               roadsideShopCharacters: state.roadsideShopCharacters || []

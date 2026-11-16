@@ -619,8 +619,9 @@ export class GameEngine {
     // Trigger smooth sprint start transition from inside the station onto the tracks!
     this.isStartingRun = true;
     this.startRunProgress = 0;
+    this.callbacks.onScoreUpdate(0, 0, 0, 0);
 
-    soundManager.startMusic();
+    soundManager.startMusic(this.config.environment.theme);
     this.tick(this.lastTime);
   }
 
@@ -633,7 +634,7 @@ export class GameEngine {
     if (this.isRunning && this.isPaused) {
       this.isPaused = false;
       this.lastTime = performance.now();
-      soundManager.startMusic();
+      soundManager.startMusic(this.config.environment.theme);
       this.tick(this.lastTime);
     }
   }
@@ -923,7 +924,10 @@ export class GameEngine {
 
     this.callbacks.onHoverboardChange(this.hoverboardsRemaining, false);
     this.callbacks.onPowerupUpdate(this.activePowerups);
-    this.callbacks.onScoreUpdate(0, 0, 0, 0);
+    this.score = 0;
+    this.coins = 0;
+    this.gems = 0;
+    this.distance = 0;
   }
 
   public updateConfig(newConfig: GameCustomConfig) {
@@ -1391,6 +1395,7 @@ export class GameEngine {
     };
     this.config.environment = this.targetThemeConfig;
     this.themeTransitionProgress = 0;
+    soundManager.setTheme(targetTheme);
 
     // Each new theme brings a heartwarming companion encounter with one of her friends!
     const themeToIndex: Record<EnvironmentTheme, number> = {
@@ -1837,30 +1842,39 @@ export class GameEngine {
       this.velocityY = 0;
       this.isJumping = false;
     } else {
-      // 4. Ground & Train Roof / Ramp Physics
+      // 4. Ground & Train Roof / Ramp Physics (Rock-solid rooftop platform!)
       let minGround = 0;
 
-      // Check for train underneath player in current lane
+      // Check for train underneath or directly near player
       for (let i = 0; i < this.environment.obstacles.length; i++) {
         const obs = this.environment.obstacles[i];
-        if (!obs.isTrain || obs.laneIndex !== this.currentLane) continue;
+        if (!obs.isTrain) continue;
 
+        // Check lateral proximity: player is in the train's lane OR horizontally over the train body
+        const obsWorldX = obs.group.position.x;
+        const isOverTrainX = obs.laneIndex === this.currentLane || Math.abs(this.playerX - obsWorldX) < 1.35;
+        if (!isOverTrainX) continue;
+
+        const roofY = obs.roofY || 3.35;
         const frontZ = obs.z + 8.0;
         const rearZ = obs.z - 8.0;
 
-        // A. Running up Ramp
+        // A. Running up Ramp onto train
         if (obs.hasRamp && obs.rampStartPosZ && obs.rampEndPosZ) {
-          if (this.playerZ <= obs.rampStartPosZ && this.playerZ >= obs.rampEndPosZ) {
-            const t = (obs.rampStartPosZ - this.playerZ) / (obs.rampStartPosZ - obs.rampEndPosZ);
-            minGround = Math.max(0, Math.min(obs.roofY!, t * obs.roofY!));
+          if (this.playerZ <= obs.rampStartPosZ + 0.6 && this.playerZ >= obs.rampEndPosZ - 0.4) {
+            const t = THREE.MathUtils.clamp((obs.rampStartPosZ - this.playerZ) / (obs.rampStartPosZ - obs.rampEndPosZ), 0, 1);
+            const rampY = t * roofY;
+            minGround = Math.max(minGround, rampY);
             break;
           }
         }
 
-        // B. Running on Train Roof
-        if (this.playerZ <= frontZ && this.playerZ >= rearZ) {
-          if (this.playerY >= obs.roofY! - 0.5) {
-            minGround = obs.roofY!;
+        // B. Running on Train Roof (rock-solid rooftop platform)
+        // Check if player is anywhere along the train length (+ generous margin on front and rear)
+        if (this.playerZ <= frontZ + 0.6 && this.playerZ >= rearZ - 0.6) {
+          // If player was already on the roof, or jumping onto roof, or hoverboard/skateboard
+          if (this.playerY >= roofY - 0.95 || this.activePowerups.hoverboard) {
+            minGround = Math.max(minGround, roofY);
             break;
           }
         }
@@ -2127,31 +2141,29 @@ export class GameEngine {
       // Distance culling
       if (Math.abs(obs.z - this.playerZ) > 14) continue;
 
-      // 1. Train Collision
+      // 1. Train Collision (Rock-Solid & Robust)
       if (obs.isTrain) {
-        const frontZ = obs.z + 8.0;
-        const rearZ = obs.z - 8.0;
-
-        // Check if player is in the same lane or entering it (using world X of the active track)
         const obsWorldX = obs.group.position.x;
-        const isSameLane = obs.laneIndex === this.currentLane || Math.abs(this.playerX - obsWorldX) < 0.85;
+        const isSameLane = obs.laneIndex === this.currentLane || Math.abs(this.playerX - obsWorldX) < 0.95;
 
         if (isSameLane) {
-          // If train has ramp and player is entering on ramp: SAFE!
+          const roofY = obs.roofY || 3.35;
+          const frontZ = obs.z + 8.0;
+
+          // SAFE CASE 1: If player is running on ramp
           if (obs.hasRamp && obs.rampStartPosZ && obs.rampEndPosZ) {
-            if (this.playerZ <= obs.rampStartPosZ + 0.3 && this.playerZ >= obs.rampEndPosZ) {
+            if (this.playerZ <= obs.rampStartPosZ + 0.8 && this.playerZ >= obs.rampEndPosZ - 0.4) {
               continue; // Safely climbing ramp!
             }
           }
 
-          // If player is on top of train roof: SAFE!
-          if (this.playerY >= obs.roofY! - 0.25) {
-            continue; // Safely running on roof!
+          // SAFE CASE 2: If player is ON TOP OF or LANDING ON the train roof (running, sliding, or on hoverboard/skateboard)
+          if (this.playerY >= roofY - 0.75) {
+            continue; // Rock-solid safe on roof! Never crash into the train you are standing on!
           }
 
-          // If player is below roof and hits front face of train:
-          // The train front bumper is at frontZ. Solid impact!
-          if (this.playerZ <= frontZ + 0.35 && this.playerZ >= rearZ - 0.5) {
+          // CRASH CASE: Player is at track level and smashes into the front bumper of the train!
+          if (this.playerZ <= frontZ + 0.35 && this.playerZ >= frontZ - 1.6) {
             this.handleCrash();
             break;
           }

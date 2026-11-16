@@ -1,6 +1,6 @@
 /**
  * Subway Princess Runner 3D
- * An endless 3D subway runner with pet companions, VIP UPI Store, and isolated Admin Studio
+ * An endless 3D subway runner with pet companions, VIP Coin Store, and isolated Admin Studio
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -52,6 +52,26 @@ export default function App() {
   const [currentDistance, setCurrentDistance] = useState<number>(0);
   const [isNewHigh, setIsNewHigh] = useState<boolean>(false);
   const [hoverboardsRemaining, setHoverboardsRemaining] = useState<number>(getStartingBoards(config));
+
+  // Dedicated completed run stats so Game Over screen always shows accurate score, coins, gems & distance
+  const [lastRunStats, setLastRunStats] = useState<{
+    score: number;
+    coins: number;
+    gems: number;
+    distance: number;
+    isNewHigh: boolean;
+  }>({
+    score: 0,
+    coins: 0,
+    gems: 0,
+    distance: 0,
+    isNewHigh: false,
+  });
+
+  const gameModeRef = useRef<GameMode>(gameMode);
+  useEffect(() => {
+    gameModeRef.current = gameMode;
+  }, [gameMode]);
 
   const [activePowerups, setActivePowerups] = useState<ActivePowerups>({
     magnet: 0,
@@ -277,109 +297,17 @@ export default function App() {
     }
   };
 
-  // Unlock Item with UPI Secret Code or 12-Digit UTR Number
-  const handleUnlockItemWithUpi = (
-    item: ShopItem,
-    utrOrCode: string
-  ): { success: boolean; message: string } => {
-    const isBn = config.gameplay.language === 'bn';
-    const cleanInput = utrOrCode.trim();
-
-    if (!cleanInput) {
-      return {
-        success: false,
-        message: isBn ? 'অনুগ্রহ করে আনলক কোড বা UTR নম্বর লিখুন।' : 'Please enter an Unlock Code or UTR number.',
-      };
-    }
-
-    // 1. Check Secret Unlock Code or Admin Master PIN
-    const matchesUnlockCode =
-      cleanInput.toUpperCase() === item.unlockCode.trim().toUpperCase() ||
-      (config.upiConfig.adminPin && cleanInput === config.upiConfig.adminPin.trim());
-
-    // 2. Check 12-Digit UPI UTR / Reference Number (if enabled by Admin)
-    const is12DigitUtr = /^\d{12}$/.test(cleanInput);
-    const isFakeRepeatedDigits = /^(\d)\1{11}$/.test(cleanInput);
-
-    if (matchesUnlockCode) {
-      const nextUnlocked = Array.from(new Set([...stats.unlockedItemIds, item.id]));
-      const nextStats: PlayerStats = {
-        ...stats,
-        unlockedItemIds: nextUnlocked,
-      };
-      handleEquipItem(item, nextStats);
-      return {
-        success: true,
-        message: isBn
-          ? `🎉 "${item.nameBn}" সফলভাবে আনলক এবং ব্যবহৃত (Equipped) হয়েছে!`
-          : `🎉 "${item.name}" unlocked & equipped!`,
-      };
-    }
-
-    if (config.upiConfig.verificationMode === 'utr_or_code' && is12DigitUtr) {
-      if (isFakeRepeatedDigits) {
-        return {
-          success: false,
-          message: isBn
-            ? 'সঠিক ১২ সংখ্যার UPI UTR / Ref নম্বর লিখুন।'
-            : 'Invalid UTR number. Please enter a genuine 12-digit UPI UTR.',
-        };
-      }
-      if (stats.usedUtrNumbers.includes(cleanInput)) {
-        return {
-          success: false,
-          message: isBn
-            ? 'এই UTR নম্বরটি ইতিমধ্যে ব্যবহার করা হয়েছে!'
-            : 'This UTR number has already been used!',
-        };
-      }
-
-      const nextUnlocked = Array.from(new Set([...stats.unlockedItemIds, item.id]));
-      const nextStats: PlayerStats = {
-        ...stats,
-        unlockedItemIds: nextUnlocked,
-        usedUtrNumbers: [...stats.usedUtrNumbers, cleanInput],
-      };
-      handleEquipItem(item, nextStats);
-      return {
-        success: true,
-        message: isBn
-          ? `🎉 পেমেন্ট ভেরিফাইড! "${item.nameBn}" আনলক ও ইকুইপ হয়েছে!`
-          : `🎉 Payment verified! "${item.name}" unlocked & equipped!`,
-      };
-    }
-
-    return {
-      success: false,
-      message:
-        config.upiConfig.verificationMode === 'code_only'
-          ? isBn
-            ? 'ভুল আনলক কোড! পেমেন্টের পর সঠিক আনলক কোডটি দিন।'
-            : 'Invalid Unlock Code! Please enter the valid code after UPI payment.'
-          : isBn
-          ? 'সঠিক ১২ সংখ্যার UPI UTR নম্বর অথবা সিক্রেট আনলক কোড দিন।'
-          : 'Invalid code! Enter a valid 12-digit UPI UTR number or Secret Unlock Code.',
-    };
-  };
-
   // Unlock Item with In-Game Coins
   const handleUnlockItemWithCoins = (item: ShopItem): { success: boolean; message: string } => {
     const isBn = config.gameplay.language === 'bn';
-    const coinPrice = item.priceCoins || 0;
-
-    if (coinPrice <= 0) {
-      return {
-        success: false,
-        message: isBn ? 'এই আইটেমটি শুধুমাত্র UPI দিয়ে আনলক করা যাবে।' : 'This item requires UPI unlock.',
-      };
-    }
+    const coinPrice = item.priceCoins && item.priceCoins > 0 ? item.priceCoins : 2500;
 
     if (stats.totalCoins < coinPrice) {
       return {
         success: false,
         message: isBn
-          ? `পর্যাপ্ত কয়েন নেই! আরও ${(coinPrice - stats.totalCoins).toLocaleString()} কয়েন প্রয়োজন অথবা ₹${item.priceInr} UPI দিয়ে আনলক করুন।`
-          : `Not enough coins! Need ${(coinPrice - stats.totalCoins).toLocaleString()} more coins, or unlock instantly with ₹${item.priceInr} UPI.`,
+          ? `পর্যাপ্ত কয়েন নেই! আরও ${(coinPrice - stats.totalCoins).toLocaleString()} কয়েন প্রয়োজন। দৌড়ে কয়েন সংগ্রহ করুন!`
+          : `Not enough coins! Need ${(coinPrice - stats.totalCoins).toLocaleString()} more coins. Keep running to collect coins!`,
       };
     }
 
@@ -399,10 +327,13 @@ export default function App() {
   };
 
   const handleScoreUpdate = (score: number, coins: number, gems: number, dist: number) => {
-    setCurrentScore(score);
-    setCurrentCoins(coins);
-    setCurrentGems(gems);
-    setCurrentDistance(dist);
+    // Only update live running HUD while game is actively running
+    if (gameModeRef.current === 'running') {
+      setCurrentScore(score);
+      setCurrentCoins(coins);
+      setCurrentGems(gems);
+      setCurrentDistance(dist);
+    }
   };
 
   const handlePowerupUpdate = (powerups: ActivePowerups) => {
@@ -415,22 +346,40 @@ export default function App() {
 
   const handleGameOver = (finalScore: number, finalCoins: number, finalGems: number, dist: number) => {
     const isHigh = finalScore > stats.highScore;
-    const baseStats: PlayerStats = {
-      ...stats,
-      highScore: Math.max(stats.highScore, finalScore),
-      totalCoins: stats.totalCoins + finalCoins,
-      totalGems: stats.totalGems + finalGems,
-      runsCount: stats.runsCount + 1,
-    };
-    const newStats = addDailyMissionProgress(baseStats, {
-      collect_coins: finalCoins,
-      run_distance: Math.floor(dist),
-      reach_score: finalScore,
+    const roundedDist = Math.floor(dist);
+
+    // Save exact final statistics of this completed run for the Game Over card
+    setLastRunStats({
+      score: finalScore,
+      coins: finalCoins,
+      gems: finalGems,
+      distance: roundedDist,
+      isNewHigh: isHigh,
     });
-    savePlayerStats(newStats);
-    setStats(newStats);
+
+    setCurrentScore(finalScore);
+    setCurrentCoins(finalCoins);
+    setCurrentGems(finalGems);
+    setCurrentDistance(roundedDist);
     setIsNewHigh(isHigh);
-    setCurrentDistance(dist);
+
+    setStats((prevStats) => {
+      const baseStats: PlayerStats = {
+        ...prevStats,
+        highScore: Math.max(prevStats.highScore, finalScore),
+        totalCoins: prevStats.totalCoins + finalCoins,
+        totalGems: prevStats.totalGems + finalGems,
+        runsCount: prevStats.runsCount + 1,
+      };
+      const newStats = addDailyMissionProgress(baseStats, {
+        collect_coins: finalCoins,
+        run_distance: roundedDist,
+        reach_score: finalScore,
+      });
+      savePlayerStats(newStats);
+      return newStats;
+    });
+
     setGameMode('gameover');
   };
 
@@ -479,7 +428,7 @@ export default function App() {
   ).length;
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-slate-950 select-none">
+    <div className="fixed inset-0 w-full h-full overflow-hidden bg-slate-950 select-none overscroll-none touch-none">
       {/* 3D WebGL Canvas */}
       <GameCanvas
         config={config}
@@ -591,12 +540,12 @@ export default function App() {
       {/* Game Over Modal */}
       {gameMode === 'gameover' && !isStoreOpen && !isDailyMissionsOpen && (
         <GameOverModal
-          score={currentScore}
+          score={lastRunStats.score}
           highScore={stats.highScore}
-          isNewHigh={isNewHigh}
-          coins={currentCoins}
-          gems={currentGems}
-          distance={currentDistance}
+          isNewHigh={lastRunStats.isNewHigh}
+          coins={lastRunStats.coins}
+          gems={lastRunStats.gems}
+          distance={lastRunStats.distance}
           config={config}
           onRestart={handleRestart}
           onHome={handleHome}
@@ -604,14 +553,13 @@ export default function App() {
         />
       )}
 
-      {/* VIP Shop & UPI Store Modal */}
+      {/* VIP Shop & Coin Store Modal */}
       {isStoreOpen && (
         <StoreModal
           config={config}
           stats={stats}
           onClose={() => setIsStoreOpen(false)}
           onEquipItem={(item) => handleEquipItem(item)}
-          onUnlockItemWithUpi={handleUnlockItemWithUpi}
           onUnlockItemWithCoins={handleUnlockItemWithCoins}
         />
       )}

@@ -7,13 +7,8 @@ import {
   X,
   Lock,
   Check,
-  Copy,
-  Smartphone,
-  QrCode,
-  KeyRound,
-  Sparkles,
-  MessageCircle,
-  ShieldAlert,
+  Clock,
+  Coins,
 } from 'lucide-react';
 
 interface StoreModalProps {
@@ -21,7 +16,6 @@ interface StoreModalProps {
   stats: PlayerStats;
   onClose: () => void;
   onEquipItem: (item: ShopItem) => void;
-  onUnlockItemWithUpi: (item: ShopItem, utrOrCode: string) => { success: boolean; message: string };
   onUnlockItemWithCoins: (item: ShopItem) => { success: boolean; message: string };
 }
 
@@ -30,17 +24,12 @@ export const StoreModal: React.FC<StoreModalProps> = ({
   stats,
   onClose,
   onEquipItem,
-  onUnlockItemWithUpi,
   onUnlockItemWithCoins,
 }) => {
   const [activeCategory, setActiveCategory] = useState<ShopCategory>('character');
-  const [selectedItemForPayment, setSelectedItemForPayment] = useState<ShopItem | null>(null);
-  const [inputCodeOrUtr, setInputCodeOrUtr] = useState('');
-  const [copiedUpi, setCopiedUpi] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
 
   const isBn = config.gameplay.language === 'bn';
-  const upi = config.upiConfig;
 
   const filteredItems = config.shopItems.filter((item) => item.category === activeCategory);
 
@@ -52,29 +41,8 @@ export const StoreModal: React.FC<StoreModalProps> = ({
     return stats.equippedItems[item.category] === item.id;
   };
 
-  const handleCopyUpiId = () => {
-    navigator.clipboard?.writeText(upi.upiId).catch(() => {});
-    setCopiedUpi(true);
-    setTimeout(() => setCopiedUpi(false), 2000);
-  };
-
-  const handleVerifyPayment = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedItemForPayment) return;
-
-    const result = onUnlockItemWithUpi(selectedItemForPayment, inputCodeOrUtr.trim());
-    if (result.success) {
-      soundManager.playGem();
-      setFeedback({ type: 'success', text: result.message });
-      setInputCodeOrUtr('');
-      setTimeout(() => {
-        setSelectedItemForPayment(null);
-        setFeedback(null);
-      }, 1500);
-    } else {
-      soundManager.playCrash();
-      setFeedback({ type: 'error', text: result.message });
-    }
+  const getCoinPrice = (item: ShopItem) => {
+    return item.priceCoins && item.priceCoins > 0 ? item.priceCoins : 2500;
   };
 
   const handleCoinPurchase = (item: ShopItem) => {
@@ -82,37 +50,31 @@ export const StoreModal: React.FC<StoreModalProps> = ({
     if (result.success) {
       soundManager.playGem();
       setFeedback({ type: 'success', text: result.message });
-      setTimeout(() => setFeedback(null), 2000);
+      setTimeout(() => setFeedback(null), 2200);
     } else {
       soundManager.playCrash();
       setFeedback({ type: 'error', text: result.message });
-      setTimeout(() => setFeedback(null), 2500);
+      setTimeout(() => setFeedback(null), 2800);
     }
   };
 
-  const getUpiDeepLink = (item: ShopItem) => {
-    const pa = encodeURIComponent(upi.upiId.trim());
-    const pn = encodeURIComponent(upi.merchantName.trim() || 'Princess Store');
-    const am = encodeURIComponent(item.priceInr.toFixed(2));
-    const tn = encodeURIComponent(`Unlock ${item.name}`);
-    return `upi://pay?pa=${pa}&pn=${pn}&am=${am}&cu=INR&tn=${tn}`;
-  };
-
-  const getWhatsappLink = (item: ShopItem) => {
-    const cleanPhone = upi.whatsappNumber.replace(/[^0-9]/g, '');
-    const msg = isBn
-      ? `হ্যালো! আমি Subway Princess গেমে "${item.nameBn}" আনলক করার জন্য ₹${item.priceInr} UPI পেমেন্ট করেছি। দয়া করে আমাকে আনলক কোড দিন।`
-      : `Hello! I paid ₹${item.priceInr} via UPI to unlock "${item.name}" in Subway Princess Runner. Please share my unlock code.`;
-    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+  const handleComingSoonPay = () => {
+    setFeedback({
+      type: 'info',
+      text: isBn
+        ? '🚧 Pay অপশনটি শীঘ্রই আসছে (Coming Soon)! আপাতত গেমে পাওয়া কয়েন (🪙) দিয়েই সবকিছু আনলক করুন।'
+        : '🚧 Direct Pay is Coming Soon! Unlock items with your earned in-game Coins (🪙) for now.',
+    });
+    setTimeout(() => setFeedback(null), 3000);
   };
 
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-950/95 p-2.5 sm:p-4 overflow-y-auto select-none font-sans">
-      <div className="max-w-2xl w-full bg-slate-900 border border-slate-700/90 rounded-3xl p-4 sm:p-6 text-white shadow-2xl flex flex-col gap-4 max-h-[94vh] overflow-hidden">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/95 p-2.5 sm:p-4 pt-[max(12px,calc(env(safe-area-inset-top,0px)+8px))] pb-[max(12px,calc(env(safe-area-inset-bottom,0px)+8px))] overflow-y-auto select-none font-sans">
+      <div className="max-w-2xl w-full bg-slate-900 border border-slate-700/90 rounded-3xl p-4 sm:p-6 text-white shadow-2xl flex flex-col gap-4 max-h-[92vh] overflow-hidden my-auto">
         {/* Top Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 to-amber-500 flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 to-amber-500 flex items-center justify-center shadow-md shrink-0">
               <ShoppingBag className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -121,13 +83,13 @@ export const StoreModal: React.FC<StoreModalProps> = ({
               </h2>
               <p className="text-[11px] text-zinc-400">
                 {isBn
-                  ? 'নতুন ক্যারেক্টার, ড্রেস, স্কেটবোর্ড ও পোষা প্রাণী আনলক করুন'
-                  : 'Unlock exclusive Characters, Dresses, Skateboards & Pets'}
+                  ? 'গেমে অর্জিত কয়েন (🪙) দিয়ে ক্যারেক্টার, ড্রেস, স্কেটবোর্ড ও পোষা প্রাণী আনলক করুন'
+                  : 'Unlock Characters, Dresses, Skateboards & Pets using earned Coins (🪙)'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Coins Balance */}
             <div className="flex items-center gap-1 bg-slate-800 px-3 py-1.5 rounded-full border border-yellow-500/30 text-yellow-400 text-xs font-bold font-mono tabular-nums">
               <span>🪙</span>
@@ -173,16 +135,18 @@ export const StoreModal: React.FC<StoreModalProps> = ({
         </div>
 
         {/* Global Feedback Banner */}
-        {feedback && !selectedItemForPayment && (
+        {feedback && (
           <div
             className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between ${
               feedback.type === 'success'
                 ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-300'
+                : feedback.type === 'info'
+                ? 'bg-amber-500/20 border border-amber-500/50 text-amber-200'
                 : 'bg-red-500/20 border border-red-500/50 text-red-300'
             }`}
           >
             <span>{feedback.text}</span>
-            <button onClick={() => setFeedback(null)} className="text-xs underline ml-2">
+            <button onClick={() => setFeedback(null)} className="text-xs underline ml-2 shrink-0">
               OK
             </button>
           </div>
@@ -193,6 +157,8 @@ export const StoreModal: React.FC<StoreModalProps> = ({
           {filteredItems.map((item) => {
             const unlocked = isUnlocked(item);
             const equipped = isEquipped(item);
+            const coinPrice = getCoinPrice(item);
+            const canAfford = stats.totalCoins >= coinPrice;
 
             return (
               <div
@@ -232,12 +198,13 @@ export const StoreModal: React.FC<StoreModalProps> = ({
                         {isBn ? item.nameBn || item.name : item.name}
                       </h3>
                       {unlocked ? (
-                        <span className="text-[10px] font-bold text-emerald-400 uppercase">
+                        <span className="text-[10px] font-bold text-emerald-400 uppercase shrink-0">
                           {isBn ? 'আনলকড' : 'Unlocked'}
                         </span>
                       ) : (
-                        <span className="text-sm font-black font-mono text-amber-400">
-                          ₹{item.priceInr}
+                        <span className="text-xs sm:text-sm font-black font-mono text-yellow-400 flex items-center gap-0.5 shrink-0">
+                          <span>🪙</span>
+                          <span>{coinPrice.toLocaleString()}</span>
                         </span>
                       )}
                     </div>
@@ -273,30 +240,39 @@ export const StoreModal: React.FC<StoreModalProps> = ({
                     </button>
                   ) : (
                     <>
-                      {/* Primary UPI Unlock Button */}
+                      {/* Primary In-Game Coins Unlock Button */}
                       <button
-                        onClick={() => {
-                          setSelectedItemForPayment(item);
-                          setInputCodeOrUtr('');
-                          setFeedback(null);
-                        }}
-                        className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
+                        onClick={() => handleCoinPurchase(item)}
+                        className={`flex-1 py-2.5 px-3 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all ${
+                          canAfford
+                            ? 'bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950'
+                            : 'bg-slate-700/90 hover:bg-slate-700 border border-yellow-500/30 text-yellow-300'
+                        }`}
+                        title={isBn ? 'গেমের কয়েন দিয়ে আনলক করুন' : 'Unlock with In-Game Coins'}
                       >
-                        <QrCode className="w-4 h-4" />
-                        {isBn ? `₹${item.priceInr} UPI আনলক` : `Unlock ₹${item.priceInr} UPI`}
+                        <Coins className="w-4 h-4 shrink-0" />
+                        <span className="truncate">
+                          {isBn
+                            ? `🪙 ${coinPrice.toLocaleString()} কয়েন`
+                            : `🪙 ${coinPrice.toLocaleString()} Coins`}
+                        </span>
                       </button>
 
-                      {/* Optional Coin Purchase Button */}
-                      {item.priceCoins && item.priceCoins > 0 ? (
-                        <button
-                          onClick={() => handleCoinPurchase(item)}
-                          className="py-2.5 px-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-yellow-300 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all"
-                          title={isBn ? 'কয়েন দিয়ে কিনুন' : 'Buy with Coins'}
-                        >
-                          <span>🪙</span>
-                          <span className="font-mono">{item.priceCoins}</span>
-                        </button>
-                      ) : null}
+                      {/* Pay Button (Coming Soon) */}
+                      <button
+                        type="button"
+                        onClick={handleComingSoonPay}
+                        className="py-2 px-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/80 border border-slate-600/70 text-zinc-300 font-bold text-[10px] flex flex-col items-center justify-center leading-tight active:scale-95 transition-all shrink-0"
+                        title={isBn ? 'শীঘ্রই আসছে' : 'Coming Soon'}
+                      >
+                        <span className="flex items-center gap-1 text-zinc-200 font-extrabold">
+                          <Clock className="w-3 h-3 text-amber-400" />
+                          <span>Pay</span>
+                        </span>
+                        <span className="text-[8px] font-bold text-amber-300/90 uppercase tracking-tighter">
+                          Coming Soon
+                        </span>
+                      </button>
                     </>
                   )}
                 </div>
@@ -305,166 +281,7 @@ export const StoreModal: React.FC<StoreModalProps> = ({
           })}
         </div>
       </div>
-
-      {/* ================= UPI PAYMENT & UNLOCK MODAL ================= */}
-      {selectedItemForPayment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-3 sm:p-4 overflow-y-auto">
-          <div className="max-w-md w-full bg-slate-900 border border-amber-500/50 rounded-3xl p-5 text-white shadow-2xl flex flex-col gap-4 my-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
-                  {isBn ? 'ভারতীয় UPI পেমেন্ট গেটওয়ে' : 'Instant UPI Unlock'}
-                </span>
-                <h3 className="text-base sm:text-lg font-black text-white">
-                  {isBn ? selectedItemForPayment.nameBn : selectedItemForPayment.name}
-                </h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-black font-mono text-amber-400">
-                  ₹{selectedItemForPayment.priceInr}
-                </span>
-                <button
-                  onClick={() => {
-                    setSelectedItemForPayment(null);
-                    setFeedback(null);
-                  }}
-                  className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-zinc-400"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Step 1: UPI QR Code & UPI ID */}
-            <div className="bg-slate-800/90 rounded-2xl p-4 border border-slate-700 flex flex-col items-center gap-3 text-center">
-              <div className="text-xs font-semibold text-zinc-200">
-                {isBn
-                  ? `ধাপ ১: নিচের UPI QR কোড স্ক্যান করুন অথবা UPI ID-তে ₹${selectedItemForPayment.priceInr} পাঠান`
-                  : `Step 1: Scan UPI QR or send ₹${selectedItemForPayment.priceInr} to UPI ID`}
-              </div>
-
-              {/* QR Display */}
-              <div className="bg-white p-3 rounded-2xl shadow-md flex flex-col items-center justify-center">
-                <img
-                  src={
-                    upi.qrCodeImageUrl ||
-                    `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=6&data=${encodeURIComponent(
-                      getUpiDeepLink(selectedItemForPayment)
-                    )}`
-                  }
-                  alt="UPI QR Code"
-                  referrerPolicy="no-referrer"
-                  className="w-40 h-40 object-contain rounded-lg"
-                />
-                <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-bold text-slate-800">
-                  <span className="truncate max-w-[120px]">{upi.merchantName}</span>
-                  <span className="text-pink-600 font-mono font-black">
-                    ₹{selectedItemForPayment.priceInr}
-                  </span>
-                </div>
-              </div>
-
-              {/* UPI ID Copy Box */}
-              <div className="w-full flex items-center justify-between bg-slate-900 border border-slate-700 rounded-xl px-3 py-2">
-                <div className="text-left truncate pr-2">
-                  <div className="text-[9px] uppercase text-zinc-400">UPI ID</div>
-                  <div className="text-xs font-mono font-bold text-amber-300 truncate">
-                    {upi.upiId}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCopyUpiId}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shrink-0 transition-colors"
-                >
-                  {copiedUpi ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copiedUpi ? (isBn ? 'কপি হয়েছে' : 'Copied') : isBn ? 'কপি' : 'Copy'}
-                </button>
-              </div>
-
-              {/* Direct Mobile UPI Deep Link Button */}
-              <a
-                href={getUpiDeepLink(selectedItemForPayment)}
-                className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition-colors"
-              >
-                <Smartphone className="w-4 h-4" />
-                {isBn
-                  ? `UPI অ্যাপ দিয়ে ₹${selectedItemForPayment.priceInr} পেমেন্ট করুন (GPay/PhonePe)`
-                  : `Pay ₹${selectedItemForPayment.priceInr} with UPI App (GPay / PhonePe)`}
-              </a>
-
-              {/* Optional WhatsApp Contact for Code */}
-              {upi.whatsappNumber && (
-                <a
-                  href={getWhatsappLink(selectedItemForPayment)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full py-2 px-3 rounded-xl bg-slate-700/80 hover:bg-slate-700 text-emerald-300 font-semibold text-[11px] flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  {isBn
-                    ? 'পেমেন্ট শেষে WhatsApp-এ আনলক কোড নিন'
-                    : 'Get Unlock Code on WhatsApp after payment'}
-                </a>
-              )}
-            </div>
-
-            {/* Step 2: Enter Unlock Code or 12-Digit UTR */}
-            <form onSubmit={handleVerifyPayment} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
-                  <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-                  {upi.verificationMode === 'code_only'
-                    ? isBn
-                      ? 'ধাপ ২: আপনার সিক্রেট আনলক কোডটি লিখুন:'
-                      : 'Step 2: Enter Secret Unlock Code:'
-                    : isBn
-                    ? 'ধাপ ২: ১২ সংখ্যার UPI UTR / Ref নম্বর অথবা আনলক কোড লিখুন:'
-                    : 'Step 2: Enter 12-Digit UPI UTR / Ref No. or Unlock Code:'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={inputCodeOrUtr}
-                  onChange={(e) => setInputCodeOrUtr(e.target.value)}
-                  placeholder={
-                    upi.verificationMode === 'code_only'
-                      ? isBn
-                        ? 'যেমন: अनलॉक কোড লিখুন'
-                        : 'Enter Unlock Code'
-                      : isBn
-                      ? '১২ সংখ্যার UTR নম্বর বা আনলক কোড'
-                      : '12-digit UTR number or Unlock Code'
-                  }
-                  className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl px-3.5 py-2.5 text-sm font-mono text-white focus:outline-none"
-                />
-              </div>
-
-              {feedback && (
-                <div
-                  className={`p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 ${
-                    feedback.type === 'success'
-                      ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
-                      : 'bg-red-500/20 border border-red-500/40 text-red-300'
-                  }`}
-                >
-                  <ShieldAlert className="w-4 h-4 shrink-0" />
-                  <span>{feedback.text}</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
-              >
-                <Sparkles className="w-4 h-4" />
-                {isBn ? 'ভেরিফাই ও আনলক করুন' : 'Verify & Unlock Now'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
+

@@ -289,30 +289,106 @@ class SoundEngine {
     });
   }
 
-  public startMusic() {
+  private currentTheme: string = 'tokyo_sakura';
+
+  public setTheme(theme: string) {
+    if (this.currentTheme === theme) return;
+    this.currentTheme = theme;
+    if (this.musicPlaying) {
+      // Smoothly restart loop with new theme's instrumentation & melodies
+      this.stopMusic();
+      this.startMusic(theme);
+    }
+  }
+
+  public startMusic(theme?: string) {
+    if (theme) {
+      this.currentTheme = theme;
+    }
     if (this.musicPlaying || this.isMuted || this.musicVolume <= 0) return;
     this.initCtx();
     if (!this.ctx) return;
 
     this.musicPlaying = true;
     let step = 0;
-    const bassNotes = [110, 110, 130.81, 146.83, 110, 110, 164.81, 146.83];
-    const leadNotes = [440, 523.25, 659.25, 587.33, 523.25, 659.25, 783.99, 659.25];
 
-    const tempoMs = 170; // ~140 BPM subway runner groove
+    // Theme-specific musical scales & arrangements
+    // 1. tokyo_sakura: Insen/Yo Japanese Pentatonic blossom sprint
+    // 2. neon_subway: 80s driving Synthwave electro arpeggio
+    // 3. royal_kingdom: Regal palace fanfare & cheerful royal bells
+    // 4. desert_oasis: Exotic Arabian Hijaz melody with desert pulse
+    // 5. cyber_future: 150 BPM energetic cyber-trance laser groove
+    const themesData: Record<string, {
+      tempoMs: number;
+      bassNotes: number[];
+      leadNotes: number[];
+      bassType: OscillatorType;
+      leadType: OscillatorType;
+      bassGainMult: number;
+      leadGainMult: number;
+    }> = {
+      tokyo_sakura: {
+        tempoMs: 165,
+        bassNotes: [146.83, 146.83, 196.0, 220.0, 146.83, 155.56, 196.0, 220.0], // D3, G3, A3, Eb3
+        leadNotes: [587.33, 622.25, 783.99, 880.0, 1046.5, 880.0, 783.99, 622.25], // D5, Eb5, G5, A5, C6 (Japanese Insen)
+        bassType: 'triangle',
+        leadType: 'sine',
+        bassGainMult: 0.09,
+        leadGainMult: 0.06,
+      },
+      neon_subway: {
+        tempoMs: 155,
+        bassNotes: [110.0, 110.0, 130.81, 146.83, 110.0, 110.0, 164.81, 146.83], // A2, C3, D3, E3
+        leadNotes: [440.0, 523.25, 659.25, 587.33, 523.25, 659.25, 783.99, 659.25], // A4 Synthwave
+        bassType: 'sawtooth',
+        leadType: 'sawtooth',
+        bassGainMult: 0.08,
+        leadGainMult: 0.045,
+      },
+      royal_kingdom: {
+        tempoMs: 175,
+        bassNotes: [196.0, 196.0, 246.94, 261.63, 196.0, 220.0, 246.94, 293.66], // G3, B3, C4, D4
+        leadNotes: [783.99, 987.77, 1046.5, 1174.66, 1046.5, 987.77, 783.99, 880.0], // G5 Royal Fanfare
+        bassType: 'triangle',
+        leadType: 'triangle',
+        bassGainMult: 0.09,
+        leadGainMult: 0.065,
+      },
+      desert_oasis: {
+        tempoMs: 160,
+        bassNotes: [146.83, 146.83, 155.56, 185.0, 146.83, 146.83, 220.0, 185.0], // D3, Eb3, F#3, A3 (Hijaz)
+        leadNotes: [587.33, 622.25, 739.99, 783.99, 880.0, 783.99, 739.99, 622.25], // D5 Hijaz
+        bassType: 'sawtooth',
+        leadType: 'sine',
+        bassGainMult: 0.08,
+        leadGainMult: 0.055,
+      },
+      cyber_future: {
+        tempoMs: 145,
+        bassNotes: [130.81, 130.81, 164.81, 174.61, 130.81, 130.81, 196.0, 174.61], // C3, E3, F3, G3
+        leadNotes: [523.25, 659.25, 783.99, 987.77, 1046.5, 783.99, 880.0, 659.25], // C5 Cyber
+        bassType: 'sawtooth',
+        leadType: 'square',
+        bassGainMult: 0.08,
+        leadGainMult: 0.035,
+      },
+    };
+
+    const activeThemeData = themesData[this.currentTheme] || themesData.tokyo_sakura;
+
     this.musicInterval = window.setInterval(() => {
       if (!this.musicPlaying || this.isMuted || !this.ctx || this.musicVolume <= 0) return;
 
       const now = this.ctx.currentTime;
-      const bFreq = bassNotes[step % bassNotes.length];
-      const lFreq = leadNotes[(step * 2) % leadNotes.length];
+      const bFreq = activeThemeData.bassNotes[step % activeThemeData.bassNotes.length];
+      const lFreq = activeThemeData.leadNotes[(step * 2) % activeThemeData.leadNotes.length];
 
-      // Bass pulse
+      // Bass pulse with theme waveform
       const bassOsc = this.ctx.createOscillator();
       const bassGain = this.ctx.createGain();
-      bassOsc.type = 'sawtooth';
+      bassOsc.type = activeThemeData.bassType;
       bassOsc.frequency.setValueAtTime(bFreq, now);
-      bassGain.gain.setValueAtTime(0.08 * this.musicVolume, now);
+      bassGain.gain.setValueAtTime(activeThemeData.bassGainMult * this.musicVolume, now);
       bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
       bassOsc.connect(bassGain);
       bassGain.connect(this.ctx.destination);
@@ -323,18 +399,18 @@ class SoundEngine {
       if (step % 2 === 0) {
         const leadOsc = this.ctx.createOscillator();
         const leadGain = this.ctx.createGain();
-        leadOsc.type = 'sine';
+        leadOsc.type = activeThemeData.leadType;
         leadOsc.frequency.setValueAtTime(lFreq, now);
-        leadGain.gain.setValueAtTime(0.05 * this.musicVolume, now);
-        leadGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        leadGain.gain.setValueAtTime(activeThemeData.leadGainMult * this.musicVolume, now);
+        leadGain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
         leadOsc.connect(leadGain);
         leadGain.connect(this.ctx.destination);
         leadOsc.start(now);
-        leadOsc.stop(now + 0.13);
+        leadOsc.stop(now + 0.14);
       }
 
       step++;
-    }, tempoMs);
+    }, activeThemeData.tempoMs);
   }
 
   public stopMusic() {

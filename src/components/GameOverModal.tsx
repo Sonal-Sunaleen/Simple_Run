@@ -44,8 +44,8 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   }, [isNewHigh]);
 
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/85 p-4">
-      <div className="max-w-sm w-full bg-slate-900 border border-slate-700 rounded-3xl p-6 text-white shadow-2xl flex flex-col gap-5 text-center">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/85 p-4 pt-[max(16px,calc(env(safe-area-inset-top,0px)+12px))] pb-[max(16px,calc(env(safe-area-inset-bottom,0px)+12px))] overflow-y-auto">
+      <div className="max-w-sm w-full bg-slate-900 border border-slate-700 rounded-3xl p-6 text-white shadow-2xl flex flex-col gap-5 text-center my-auto">
         {/* Banner */}
         <div className="space-y-1">
           <div className="text-xs font-bold uppercase tracking-widest text-red-400">

@@ -509,7 +509,15 @@ export class PrincessCharacter {
     }
     this.mixer = null;
 
-    // Immediately hide default procedural body & accessories
+    // If reference pointer to Firestore or empty, keep procedural body visible and safe
+    if (urlOrPreset.startsWith('ref:') || urlOrPreset === 'null' || urlOrPreset === 'undefined') {
+      this.defaultBodyGroup.visible = true;
+      if (this.crownMesh) this.crownMesh.visible = this.config.hasCrown !== false;
+      if (this.capeGroup) this.capeGroup.visible = !!this.config.hasCape;
+      return;
+    }
+
+    // Immediately hide default procedural body & accessories while loading
     this.defaultBodyGroup.visible = false;
     if (this.crownMesh) this.crownMesh.visible = false;
     if (this.capeGroup) this.capeGroup.visible = false;
@@ -825,7 +833,17 @@ export class PrincessCharacter {
             () => {}
           );
         } else {
-          new GLTFLoader().load(urlOrPreset, (gltf) => onModelLoaded(gltf.scene, gltf.animations), undefined, () => {});
+          new GLTFLoader().load(
+            urlOrPreset,
+            (gltf) => onModelLoaded(gltf.scene, gltf.animations),
+            undefined,
+            (err) => {
+              console.warn('GLTF model could not be loaded, using fallback mesh:', err);
+              this.defaultBodyGroup.visible = true;
+              if (this.crownMesh) this.crownMesh.visible = this.config.hasCrown !== false;
+              if (this.capeGroup) this.capeGroup.visible = !!this.config.hasCape;
+            }
+          );
         }
       }
     } catch {

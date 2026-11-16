@@ -618,5 +618,59 @@
       }
     }
   ],
-  "updatedAt": 1791327423118
+  "updatedAt": 1791327423118,
+  "roadsideShopCharacters": [
+    {
+      "id": "shop_keeper_center",
+      "enabled": true,
+      "roleBn": "১. মূল শপকিপার (মাঝের কাউন্টার)",
+      "roleEn": "1. Main Shopkeeper (Center Counter)",
+      "pose": "wave",
+      "name": "Empress Zara",
+      "modelType": "royal",
+      "skinColor": "#fed7aa",
+      "hairColor": "#18181b",
+      "outfitColor": "#eab308",
+      "outfitSecondaryColor": "#059669",
+      "crownColor": "#fef08a",
+      "capeColor": "#10b981",
+      "hasCrown": true,
+      "hasCape": true
+    },
+    {
+      "id": "shop_keeper_left",
+      "enabled": true,
+      "roleBn": "২. বাম পাশের শপ ক্যারেক্টার",
+      "roleEn": "2. Left Counter Shop Character",
+      "pose": "dance",
+      "name": "Princess Aoi",
+      "modelType": "sakura",
+      "skinColor": "#fff1f2",
+      "hairColor": "#312e81",
+      "outfitColor": "#f472b6",
+      "outfitSecondaryColor": "#fda4af",
+      "crownColor": "#fb7185",
+      "capeColor": "#f43f5e",
+      "hasCrown": true,
+      "hasCape": true
+    },
+    {
+      "id": "shop_keeper_right",
+      "enabled": true,
+      "roleBn": "৩. ডান পাশের শপ ক্যারেক্টার",
+      "roleEn": "3. Right Counter Shop Character",
+      "pose": "wave",
+      "name": "Cyber Nova",
+      "modelType": "cyber",
+      "skinColor": "#fce7f3",
+      "hairColor": "#06b6d4",
+      "outfitColor": "#0f172a",
+      "outfitSecondaryColor": "#22d3ee",
+      "crownColor": "#06b6d4",
+      "capeColor": "#38bdf8",
+      "hasCrown": true,
+      "hasCape": false
+    }
+  ],
+  "levelUpRewards": []
 }

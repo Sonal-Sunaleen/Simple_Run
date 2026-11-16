@@ -212,108 +212,116 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   };
 
   return (
-    <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-2.5 sm:p-5 select-none font-sans">
-      {/* Top Bar: 3 Zones */}
-      <div className="flex items-center justify-between gap-1.5 sm:gap-2">
-        {/* Left: Collectibles & Pet */}
-        <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
-          <div className="flex items-center gap-1 bg-black/75 px-2.5 py-1 rounded-full border border-yellow-500/30 text-yellow-400 shadow-md">
-            <span className="text-sm sm:text-base">🪙</span>
-            <span className="font-bold font-mono tabular-nums text-xs sm:text-sm text-white">
-              {coins}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1 bg-black/75 px-2.5 py-1 rounded-full border border-rose-500/30 text-rose-400 shadow-md">
-            <span className="text-sm sm:text-base">💎</span>
-            <span className="font-bold font-mono tabular-nums text-xs sm:text-sm text-white">
-              {gems}
-            </span>
-          </div>
-
-          {config.pet.enabled && (
-            <div className="hidden sm:flex items-center gap-1 bg-black/75 px-2 py-1 rounded-full border border-sky-500/30 text-sky-300 text-[11px] shadow-md">
-              <span>🐾</span>
-              <span className="font-medium text-white">{config.pet.name}</span>
+    <div className="absolute inset-0 pointer-events-none flex flex-col justify-between pt-[max(10px,calc(env(safe-area-inset-top,0px)+8px))] px-2 sm:px-4 pb-[max(10px,calc(env(safe-area-inset-bottom,0px)+8px))] select-none font-sans overflow-hidden">
+      {/* Top HUD: Responsive 2-tier layout that never clips on mobile screens */}
+      <div className="flex-shrink-0 flex flex-col gap-1.5 w-full max-w-4xl mx-auto">
+        {/* Tier 1: Primary Live Stats & Essential Pause/Mute */}
+        <div className="flex items-center justify-between gap-1.5 w-full">
+          {/* Left: Collectibles */}
+          <div className="flex items-center gap-1 sm:gap-1.5 pointer-events-auto flex-shrink-0">
+            <div className="flex items-center gap-1 bg-black/80 px-2 sm:px-2.5 py-1 rounded-full border border-yellow-500/40 text-yellow-400 shadow-md">
+              <span className="text-xs sm:text-sm">🪙</span>
+              <span className="font-bold font-mono tabular-nums text-xs sm:text-sm text-white">
+                {coins}
+              </span>
             </div>
-          )}
+
+            <div className="flex items-center gap-1 bg-black/80 px-2 sm:px-2.5 py-1 rounded-full border border-rose-500/40 text-rose-400 shadow-md">
+              <span className="text-xs sm:text-sm">💎</span>
+              <span className="font-bold font-mono tabular-nums text-xs sm:text-sm text-white">
+                {gems}
+              </span>
+            </div>
+
+            {config.pet.enabled && (
+              <div className="hidden md:flex items-center gap-1 bg-black/80 px-2 py-1 rounded-full border border-sky-500/30 text-sky-300 text-[11px] shadow-md">
+                <span>🐾</span>
+                <span className="font-medium text-white">{config.pet.name}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Center: Live Score & Distance */}
+          <div className="flex flex-col items-center pointer-events-auto flex-shrink-0">
+            <div className="bg-black/85 px-3 sm:px-4 py-0.5 sm:py-1 rounded-2xl border border-white/15 text-center shadow-lg">
+              <div className="text-[8px] sm:text-[9px] font-semibold uppercase tracking-wider text-pink-400">
+                {isBn ? 'স্কোর' : 'SCORE'}
+              </div>
+              <div className="text-base sm:text-xl font-black font-mono tabular-nums text-white tracking-wider leading-none my-0.5">
+                {score.toLocaleString()}
+              </div>
+              <div className="text-[8px] sm:text-[9px] font-mono text-zinc-400">
+                {distance}m
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Sound & Prominent Pause Button */}
+          <div className="flex items-center gap-1 sm:gap-1.5 pointer-events-auto flex-shrink-0">
+            <button
+              onClick={handleToggleMute}
+              className="p-1 sm:p-1.5 bg-black/80 border border-white/15 text-white rounded-xl hover:bg-white/10 transition-colors"
+              title="Mute/Unmute"
+            >
+              {isMuted ? <VolumeX className="w-3.5 h-3.5 text-red-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
+            </button>
+
+            <button
+              onClick={onPause}
+              className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 rounded-xl font-extrabold text-[11px] sm:text-xs shadow-lg shadow-amber-500/25 active:scale-90 flex items-center gap-1 border border-amber-300 transition-all pointer-events-auto"
+              title={isBn ? 'গেম পজ করুন' : 'Pause Game'}
+            >
+              <Pause className="w-3.5 h-3.5 fill-slate-950" />
+              <span className="font-black uppercase tracking-wider">
+                {isBn ? 'পজ' : 'PAUSE'}
+              </span>
+            </button>
+          </div>
         </div>
 
-        {/* Center: Live Score & Distance */}
-        <div className="flex flex-col items-center pointer-events-auto">
-          <div className="bg-black/75 px-3.5 py-1 rounded-2xl border border-white/10 text-center shadow-lg">
-            <div className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-pink-400">
-              {isBn ? 'স্কোর' : 'SCORE'}
-            </div>
-            <div className="text-lg sm:text-2xl font-black font-mono tabular-nums text-white tracking-wider leading-none my-0.5">
-              {score.toLocaleString()}
-            </div>
-            <div className="text-[9px] font-mono text-zinc-400">
-              {distance}m
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Controls, 60FPS Toggle & Store */}
-        <div className="flex items-center gap-1 sm:gap-2 pointer-events-auto">
-          <button
-            onClick={onToggleQuality}
-            className={`px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-bold border flex items-center gap-1 transition-colors ${
-              isSmooth
-                ? 'bg-emerald-600/90 border-emerald-400 text-white'
-                : 'bg-black/75 border-white/10 text-zinc-300'
-            }`}
-            title="Toggle 60FPS Smooth Mode"
-          >
-            <Zap className="w-3.5 h-3.5 text-yellow-300" />
-            <span className="hidden xs:inline">
-              {isSmooth ? '৬০ FPS' : 'HQ'}
-            </span>
-          </button>
-
-          <button
-            onClick={onToggleLanguage}
-            className="px-2 py-1 bg-black/75 border border-white/10 text-white rounded-xl text-[10px] sm:text-xs font-bold hover:bg-white/10 transition-colors"
-            title="Toggle Language"
-          >
-            {isBn ? 'EN' : 'বাং'}
-          </button>
-
-          <button
-            onClick={handleToggleMute}
-            className="p-1.5 sm:p-2 bg-black/75 border border-white/10 text-white rounded-xl hover:bg-white/10 transition-colors"
-            title="Mute/Unmute"
-          >
-            {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
-          </button>
-
+        {/* Tier 2: Secondary Quick Actions Toolbar (Roadside Shop, VIP Shop, 60 FPS & Language) */}
+        <div className="flex items-center justify-end gap-1 sm:gap-1.5 pointer-events-auto w-full">
+          {/* Roadside Shop Button */}
           <button
             onClick={onStopAtRoadsideShop}
-            className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 bg-amber-500/90 hover:bg-amber-400 border border-amber-300 text-slate-950 rounded-xl font-extrabold text-[10px] sm:text-xs flex items-center gap-1 active:scale-95 transition-all shadow-md"
+            className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-amber-500/90 hover:bg-amber-400 border border-amber-300 text-slate-950 rounded-xl font-extrabold text-[10px] sm:text-[11px] flex items-center gap-1 active:scale-95 transition-all shadow-md"
             title={isBn ? 'রাস্তার পাশের দোকানে দাঁড়ান' : 'Stop at Roadside Shop'}
           >
-            <Store className="w-3.5 h-3.5" />
+            <Store className="w-3 h-3" />
             <span className="whitespace-nowrap">{isBn ? 'রাস্তার শপ' : 'Road Shop'}</span>
           </button>
 
+          {/* VIP Shop */}
           <button
             onClick={onOpenStore}
-            className="p-1.5 sm:p-2 bg-black/75 border border-amber-500/40 text-amber-400 rounded-xl hover:bg-amber-500/20 active:scale-95 transition-all"
+            className="px-2 py-0.5 sm:px-2 sm:py-1 bg-black/80 border border-amber-500/40 text-amber-400 rounded-xl hover:bg-amber-500/20 active:scale-95 transition-all flex items-center gap-1 text-[10px] sm:text-[11px] font-bold"
             title={isBn ? 'ভিআইপি শপ' : 'VIP Shop'}
           >
-            <ShoppingBag className="w-4 h-4" />
+            <ShoppingBag className="w-3 h-3" />
+            <span className="hidden xs:inline">{isBn ? 'শপ' : 'Shop'}</span>
           </button>
 
-          {/* Prominent, high-visibility Pause Button */}
+          {/* 60 FPS Toggle */}
           <button
-            onClick={onPause}
-            className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 rounded-xl font-extrabold text-xs shadow-lg shadow-amber-500/25 active:scale-90 flex items-center gap-1.5 border border-amber-300 transition-all pointer-events-auto"
-            title={isBn ? 'গেম পজ করুন' : 'Pause Game'}
+            onClick={onToggleQuality}
+            className={`px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-xl text-[9px] sm:text-[10px] font-bold border flex items-center gap-0.5 transition-colors ${
+              isSmooth
+                ? 'bg-emerald-600/90 border-emerald-400 text-white'
+                : 'bg-black/80 border-white/15 text-zinc-300'
+            }`}
+            title="Toggle 60FPS Smooth Mode"
           >
-            <Pause className="w-4 h-4 fill-slate-950" />
-            <span className="text-[11px] font-black uppercase tracking-wider">
-              {isBn ? 'পজ' : 'PAUSE'}
-            </span>
+            <Zap className="w-3 h-3 text-yellow-300" />
+            <span className="font-mono">{isSmooth ? '60FPS' : 'HQ'}</span>
+          </button>
+
+          {/* Language Toggle */}
+          <button
+            onClick={onToggleLanguage}
+            className="px-1.5 py-0.5 sm:px-2 sm:py-1 bg-black/80 border border-white/15 text-white rounded-xl text-[9px] sm:text-[10px] font-bold hover:bg-white/10 transition-colors"
+            title="Toggle Language"
+          >
+            {isBn ? 'EN' : 'বাং'}
           </button>
         </div>
       </div>

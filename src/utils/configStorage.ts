@@ -444,19 +444,19 @@ export const DEFAULT_CONFIG: GameCustomConfig = {
     perkDescription: '+25% Coin Magnet range & duration',
   },
   environment: {
-    theme: 'neon_subway',
-    themeName: 'Bright Sky Transit',
-    skyColor: '#38bdf8',
-    fogColor: '#bae6fd',
-    trackColor: '#e2e8f0',
-    railColor: '#ec4899',
-    trainColor: '#2563eb',
-    trainAccentColor: '#fbbf24',
+    theme: 'tokyo_sakura',
+    themeName: 'Neon City Subway',
+    skyColor: '#090d16',
+    fogColor: '#1e1b4b',
+    trackColor: '#1e293b',
+    railColor: '#38bdf8',
+    trainColor: '#f43f5e',
+    trainAccentColor: '#38bdf8',
     billboardImages: [],
-    particleTheme: 'sparks',
+    particleTheme: 'petals',
     ambientLightColor: '#ffffff',
-    directionalLightColor: '#fff9db',
-    selectedScenerySet: 'set_neon_skyline',
+    directionalLightColor: '#38bdf8',
+    selectedScenerySet: 'set_tokyo_cherry',
     scenerySets: [
       {
         id: 'set_neon_skyline',
@@ -937,6 +937,10 @@ export function mergeConfigWithDefaults(srv: Partial<GameCustomConfig>, currentL
       ...currentLocal.upiConfig,
       ...(srv.upiConfig || {}),
     },
+    gameplay: {
+      ...currentLocal.gameplay,
+      ...(srv.gameplay || {}),
+    },
     environment: {
       ...currentLocal.environment,
       ...(srv.environment || {}),
@@ -1072,8 +1076,8 @@ export async function fetchLiveServerConfig(currentLocal: GameCustomConfig): Pro
     // Fallback to REST endpoints
   }
 
-  // 2. Fallback to REST endpoints
-  const endpoints = ['/api/config', CLOUD_SYNC_API];
+  // 2. Fallback to REST endpoints & static bundled config
+  const endpoints = ['/api/config', '/live-game-config.json', CLOUD_SYNC_API];
   for (const url of endpoints) {
     try {
       const res = await fetch(url);
@@ -1081,8 +1085,9 @@ export async function fetchLiveServerConfig(currentLocal: GameCustomConfig): Pro
       const contentType = res.headers.get('content-type') || '';
       if (!contentType.includes('application/json')) continue;
       const data = await res.json();
-      if (!data?.ok || !data?.config) continue;
-      return mergeConfigWithDefaults(data.config, currentLocal);
+      const configObj = data?.config || (data?.princess || data?.environment ? data : null);
+      if (!configObj) continue;
+      return mergeConfigWithDefaults(configObj, currentLocal);
     } catch {
       // Try next endpoint
     }

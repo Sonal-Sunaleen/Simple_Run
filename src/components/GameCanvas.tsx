@@ -37,19 +37,37 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const isMouseDragging = useRef<boolean>(false);
   const lastTapTime = useRef<number>(0);
 
+  const callbacksRef = useRef<GameEngineCallbacks>({
+    onScoreUpdate,
+    onPowerupUpdate,
+    onGameOver,
+    onHoverboardChange,
+    onCompanionEncounter,
+    onRoadsideShopUpdate,
+  });
+
+  callbacksRef.current = {
+    onScoreUpdate,
+    onPowerupUpdate,
+    onGameOver,
+    onHoverboardChange,
+    onCompanionEncounter,
+    onRoadsideShopUpdate,
+  };
+
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const callbacks: GameEngineCallbacks = {
-      onScoreUpdate,
-      onPowerupUpdate,
-      onGameOver,
-      onHoverboardChange,
-      onCompanionEncounter,
-      onRoadsideShopUpdate,
+    const proxyCallbacks: GameEngineCallbacks = {
+      onScoreUpdate: (...args) => callbacksRef.current.onScoreUpdate(...args),
+      onPowerupUpdate: (...args) => callbacksRef.current.onPowerupUpdate(...args),
+      onGameOver: (...args) => callbacksRef.current.onGameOver(...args),
+      onHoverboardChange: (...args) => callbacksRef.current.onHoverboardChange(...args),
+      onCompanionEncounter: (...args) => callbacksRef.current.onCompanionEncounter?.(...args),
+      onRoadsideShopUpdate: (...args) => callbacksRef.current.onRoadsideShopUpdate?.(...args),
     };
 
-    const engine = new GameEngine(containerRef.current, config, callbacks);
+    const engine = new GameEngine(containerRef.current, config, proxyCallbacks);
     internalEngineRef.current = engine;
     if (engineRef) {
       engineRef.current = engine;
