@@ -75,15 +75,15 @@ jobs:
             content = f.read()
 
         signing_block = """
-    signingConfigs {
-        release {
-            storeFile file("release-key.jks")
-            storePassword System.getenv("KEYSTORE_PASSWORD")
-            keyAlias System.getenv("KEY_ALIAS")
-            keyPassword System.getenv("KEY_PASSWORD")
+        signingConfigs {
+            release {
+                storeFile file("release-key.jks")
+                storePassword System.getenv("KEYSTORE_PASSWORD")
+                keyAlias System.getenv("KEY_ALIAS")
+                keyPassword System.getenv("KEY_PASSWORD")
+            }
         }
-    }
-"""
+        """
 
         if "android {" in content and "signingConfigs {" not in content:
             content = content.replace("android {", "android {" + signing_block, 1)
