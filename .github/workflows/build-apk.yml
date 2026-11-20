@@ -1,8 +1,9 @@
-name: Build APK with Capacitor
+name: Build Signed Release APK with Capacitor
 
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -30,8 +31,8 @@ jobs:
       run: |
         cat << 'EOF' > capacitor.config.json
         {
-          "appId": "com.subway.game",
-          "appName": "SubwayGame",
+          "appId": "com.simplerun.game",
+          "appName": "Simple Run",
           "webDir": "dist"
         }
         EOF
@@ -45,10 +46,16 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
 
-    - name: Fix Kotlin Version Conflict
+    - name: Decode Release Keystore
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      run: |
+        mkdir -p android/app
+        echo "$KEYSTORE_BASE64" | base64 --decode > android/app/release-key.jks
+
+    - name: Fix Kotlin Version & Configure Release Signing
       run: |
         cd android
-        # build.gradle ফাইলে কোটলিন লাইব্রেরি ডুপ্লিকেট রোধ করার কোড যুক্ত করা
         cat << 'EOF' >> app/build.gradle
 
         configurations.all {
@@ -60,19 +67,52 @@ jobs:
         }
         EOF
 
-    - name: Build Android APK with Gradle
+        python3 -c '
+        import re
+
+        path = "app/build.gradle"
+        with open(path, "r") as f:
+            content = f.read()
+
+        signing_block = """
+    signingConfigs {
+        release {
+            storeFile file("release-key.jks")
+            storePassword System.getenv("KEYSTORE_PASSWORD")
+            keyAlias System.getenv("KEY_ALIAS")
+            keyPassword System.getenv("KEY_PASSWORD")
+        }
+    }
+"""
+
+        if "android {" in content and "signingConfigs {" not in content:
+            content = content.replace("android {", "android {" + signing_block, 1)
+
+        content = re.sub(
+            r"(release\s*\{)",
+            r"\1\n                signingConfig signingConfigs.release",
+            content,
+            count=1
+        )
+
+        with open(path, "w") as f:
+            f.write(content)
+        '
+
+    - name: Build Signed Release APK with Gradle
+      env:
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: |
         cd android
-        
-        # পুরোনো ক্যাশ পরিষ্কার করা
-        ./gradlew clean --no-daemon
-
         chmod +x gradlew
-        # গ্রেডল দিয়ে এপিকে বিল্ড করা
-        ./gradlew assembleDebug --no-daemon --refresh-dependencies
+        ./gradlew clean --no-daemon
+        ./gradlew assembleRelease --no-daemon --refresh-dependencies
 
-    - name: Upload APK Artifact
+    - name: Upload Release APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Subway-Game-Real-APK
-        path: android/app/build/outputs/apk/debug/app-debug.apk
+        name: Simple-Run-Release-APK
+        path: android/app/build/outputs/apk/release/app-release.apk
+        
