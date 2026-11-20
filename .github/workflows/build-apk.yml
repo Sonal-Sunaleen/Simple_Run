@@ -36,7 +36,7 @@ jobs:
           "webDir": "dist"
         }
         EOF
-        
+
         npx cap add android || true
         npx cap sync android
 
@@ -67,7 +67,7 @@ jobs:
         }
         EOF
 
-        python3 -c '
+        cat << 'EOF' > patch_signing.py
         import re
 
         path = "app/build.gradle"
@@ -97,7 +97,9 @@ jobs:
 
         with open(path, "w") as f:
             f.write(content)
-        '
+        EOF
+
+        python3 patch_signing.py
 
     - name: Build Signed Release APK with Gradle
       env:
@@ -115,4 +117,3 @@ jobs:
       with:
         name: Simple-Run-Release-APK
         path: android/app/build/outputs/apk/release/app-release.apk
-        
