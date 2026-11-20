@@ -53,53 +53,13 @@ jobs:
         mkdir -p android/app
         echo "$KEYSTORE_BASE64" | base64 --decode > android/app/release-key.jks
 
-    - name: Fix Kotlin Version & Configure Release Signing
+    - name: Configure Gradle Signing
       run: |
         cd android
-        cat << 'EOF' >> app/build.gradle
-
-        configurations.all {
-            resolutionStrategy.eachDependency { details ->
-                if (details.requested.group == 'org.jetbrains.kotlin') {
-                    details.useVersion '1.8.22'
-                }
-            }
-        }
-        EOF
-
-        cat << 'EOF' > patch_signing.py
-        import re
-
-        path = "app/build.gradle"
-        with open(path, "r") as f:
-            content = f.read()
-
-        signing_block = """
-        signingConfigs {
-            release {
-                storeFile file("release-key.jks")
-                storePassword System.getenv("KEYSTORE_PASSWORD")
-                keyAlias System.getenv("KEY_ALIAS")
-                keyPassword System.getenv("KEY_PASSWORD")
-            }
-        }
-        """
-
-        if "android {" in content and "signingConfigs {" not in content:
-            content = content.replace("android {", "android {" + signing_block, 1)
-
-        content = re.sub(
-            r"(release\s*\{)",
-            r"\1\n                signingConfig signingConfigs.release",
-            content,
-            count=1
-        )
-
-        with open(path, "w") as f:
-            f.write(content)
-        EOF
-
-        python3 patch_signing.py
+        grep -q "compileSdkVersion" app/build.gradle || grep -q "compileSdk " app/build.gradle || sed -i 's/android {/android {\n    compileSdkVersion 34/' app/build.gradle
+        grep -q "signingConfigs {" app/build.gradle || sed -i 's/android {/android {\n    signingConfigs {\n        release {\n            storeFile file("release-key.jks")\n            storePassword System.getenv("KEYSTORE_PASSWORD")\n            keyAlias System.getenv("KEY_ALIAS")\n            keyPassword System.getenv("KEY_PASSWORD")\n        }\n    }/' app/build.gradle
+        grep -q "signingConfig signingConfigs.release" app/build.gradle || sed -i 's/release {/release {\n            signingConfig signingConfigs.release/' app/build.gradle
+        grep -q "org.jetbrains.kotlin" app/build.gradle || printf '\nconfigurations.all {\n    resolutionStrategy.eachDependency { details ->\n        if (details.requested.group == "org.jetbrains.kotlin") {\n            details.useVersion "1.8.22"\n        }\n    }\n}\n' >> app/build.gradle
 
     - name: Build Signed Release APK with Gradle
       env:
@@ -117,3 +77,4 @@ jobs:
       with:
         name: Simple-Run-Release-APK
         path: android/app/build/outputs/apk/release/app-release.apk
+        
